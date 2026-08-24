@@ -1,0 +1,40 @@
+# Woodpecker CI on Pegasus — build/push fork image to GHCR for TrueNAS.
+#
+# Flow: docker build (host sock) → push ghcr.io/sp-937-215/moltis
+# Public CI: https://ci.qod.name
+#
+# Repo settings in Woodpecker:
+#   - Trusted (or allow docker.sock volume)
+#   - Events: push + manual
+# Host credentials (preferred):
+#   /home/quentin/.docker/config.json  (docker login ghcr.io -u SP-937-215)
+# Optional secrets (fallback login):
+#   GHCR_USERNAME, GHCR_TOKEN (PAT with write:packages, read:packages)
+
+when:
+  - event: push
+    branch:
+      - fix/aud-2026-001-remediation
+      - main
+  - event: manual
+
+variables:
+  - &docker_image "docker:27-cli"
+  - &image_repo "ghcr.io/sp-937-215/moltis"
+
+steps:
+  - name: publish-image
+    image: *docker_image
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/quentin/.docker/config.json:/root/.docker/config.json:ro
+    environment:
+      IMAGE_REPO: *image_repo
+      GHCR_USERNAME:
+        from_secret: GHCR_USERNAME
+      GHCR_TOKEN:
+        from_secret: GHCR_TOKEN
+    commands:
+      - apk add --no-cache bash git
+      - chmod +x deploy/woodpecker/ci-publish.sh
+      - bash deploy/woodpecker/ci-publish.sh
