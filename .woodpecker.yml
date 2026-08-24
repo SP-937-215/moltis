@@ -4,12 +4,11 @@
 # Public CI: https://ci.qod.name
 #
 # Repo settings in Woodpecker:
-#   - Trusted (or allow docker.sock volume)
+#   - Trusted + Trusted Volumes (docker.sock + ~/.docker/config.json)
 #   - Events: push + manual
-# Host credentials (preferred):
-#   /home/quentin/.docker/config.json  (docker login ghcr.io -u SP-937-215)
-# Optional secrets (fallback login):
-#   GHCR_USERNAME, GHCR_TOKEN (PAT with write:packages, read:packages)
+# GHCR auth (same as TMS):
+#   host `docker login ghcr.io -u SP-937-215` → ~/.docker/config.json mounted below
+# Optional later: add GHCR_USERNAME/GHCR_TOKEN secrets and wire from_secret if needed
 
 when:
   - event: push
@@ -30,10 +29,6 @@ steps:
       - /home/quentin/.docker/config.json:/root/.docker/config.json:ro
     environment:
       IMAGE_REPO: *image_repo
-      GHCR_USERNAME:
-        from_secret: GHCR_USERNAME
-      GHCR_TOKEN:
-        from_secret: GHCR_TOKEN
     commands:
       - apk add --no-cache bash git
       - chmod +x deploy/woodpecker/ci-publish.sh

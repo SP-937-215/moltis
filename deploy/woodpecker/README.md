@@ -8,11 +8,10 @@ Public CI: **https://ci.qod.name** (Pegasus + Pangolin Newt)
 2. Repo **Settings**:
    - **Trusted** (needed for `/var/run/docker.sock`)
    - Events: **push** + **manual**
-3. GHCR auth (pick one):
-   - Preferred: on Pegasus host  
-     `docker login ghcr.io -u SP-937-215`  
-     (pipeline mounts `~/.docker/config.json`)
-   - Or secrets: `GHCR_USERNAME`, `GHCR_TOKEN` (PAT with `write:packages`, `read:packages`)
+3. GHCR auth (same as TMS — **no per-repo secrets required**):
+   - On Pegasus host once: `docker login ghcr.io -u SP-937-215`
+   - Pipeline mounts `~/.docker/config.json`
+   - Only add `GHCR_USERNAME` / `GHCR_TOKEN` secrets if you later wire `from_secret` again
 
 ## Pipeline
 
