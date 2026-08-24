@@ -159,6 +159,7 @@ default = [
   "provider-github-copilot",
   "provider-kimi-code",
   "provider-openai-codex",
+  "provider-xai-oauth",
   "push-notifications",
   "qmd",
   "signal",
@@ -229,6 +230,7 @@ provider-openai-codex = [
   "moltis-providers/provider-openai-codex",
   "moltis-tools/provider-openai-codex",
 ]
+provider-xai-oauth = ["moltis-providers/provider-xai-oauth"]
 push-notifications = [
   "dep:chrono",
   "dep:isahc",
