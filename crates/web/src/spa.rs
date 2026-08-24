@@ -49,11 +49,12 @@ pub async fn spa_fallback(State(state): State<AppState>, uri: Uri) -> impl IntoR
 
 pub async fn onboarding_handler(State(state): State<AppState>) -> impl IntoResponse {
     let onboarded = onboarding_completed(&state.gateway).await;
-    let auth_setup_pending = state
-        .gateway
-        .credential_store
-        .as_ref()
-        .is_some_and(|store| store.is_auth_disabled() || !store.is_setup_complete());
+    // Auth intentionally disabled is not "setup pending" — treating it as such
+    // traps Docker/local users on /onboarding forever (#1112). Pending means
+    // credentials are still required and have not been configured yet.
+    let auth_setup_pending = state.gateway.credential_store.as_ref().is_some_and(|store| {
+        auth_setup_is_pending(store.is_auth_disabled(), store.is_setup_complete())
+    });
 
     if should_redirect_from_onboarding(onboarded, auth_setup_pending) {
         return Redirect::to("/").into_response();
@@ -98,6 +99,13 @@ fn is_non_page_path(path: &str) -> bool {
         || path.contains('.')
 }
 
+/// True when auth credentials are still required but missing.
+///
+/// `auth.disabled = true` is an intentional no-auth mode, not a pending setup.
+fn auth_setup_is_pending(auth_disabled: bool, setup_complete: bool) -> bool {
+    !auth_disabled && !setup_complete
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -128,5 +136,13 @@ mod tests {
         assert!(!is_non_page_path("/ws-hook"));
         assert!(!is_non_page_path("/does-not-exist"));
         assert!(!is_non_page_path("/settings/profile"));
+    }
+
+    #[test]
+    fn auth_disabled_is_not_setup_pending() {
+        assert!(!auth_setup_is_pending(true, false));
+        assert!(!auth_setup_is_pending(true, true));
+        assert!(auth_setup_is_pending(false, false));
+        assert!(!auth_setup_is_pending(false, true));
     }
 }

@@ -1,0 +1,100 @@
+crates/media/src/image_ops.rs:311:        let meta = get_image_metadata(TINY_JPEG).unwrap();
+crates/media/src/image_ops.rs:319:        let needs = needs_optimization(TINY_JPEG, 1568).unwrap();
+crates/media/src/image_ops.rs:325:        let result = resize_image(TINY_JPEG, 100, 100).unwrap();
+crates/media/src/image_ops.rs:332:        let result = optimize_for_llm(TINY_JPEG, None).unwrap();
+crates/media/src/mime.rs:239:            let mime = mime_from_extension(ext).unwrap();
+crates/media/src/mime.rs:253:            let mime = mime_from_extension(ext).unwrap();
+crates/media/src/server.rs:3:    todo!("serve files from media directory via axum")
+crates/media/src/store.rs:5:    todo!("download URL, detect MIME, save as {{name}}---{{uuid}}.{{ext}}")
+crates/media/src/cleanup.rs:3:    todo!("delete files older than TTL, return count deleted")
+crates/channels/src/plugin.rs:1053:        let json = serde_json::to_string(&target).unwrap();
+crates/channels/src/plugin.rs:1055:        let restored: ChannelReplyTarget = serde_json::from_str(&json).unwrap();
+crates/channels/src/plugin.rs:1063:        let target: ChannelReplyTarget = serde_json::from_str(json).unwrap();
+crates/channels/src/plugin.rs:1072:        assert_eq!("whatsapp".parse::<ChannelType>().unwrap(), ct);
+crates/channels/src/plugin.rs:1084:            let json = serde_json::to_string(&ct).unwrap();
+crates/channels/src/plugin.rs:1085:            let parsed: ChannelType = serde_json::from_str(&json).unwrap();
+crates/channels/src/plugin.rs:1095:        assert_eq!("discord".parse::<ChannelType>().unwrap(), ct);
+crates/channels/src/plugin.rs:1105:        let json = serde_json::to_value(&event).unwrap();
+crates/channels/src/plugin.rs:1119:        let json = serde_json::to_value(&event).unwrap();
+crates/channels/src/plugin.rs:1131:        let json = serde_json::to_value(&event).unwrap();
+crates/channels/src/plugin.rs:1199:        let json = serde_json::to_value(&event).unwrap();
+crates/channels/src/plugin.rs:1216:            let parsed: ChannelType = s.parse().unwrap_or_else(|e| panic!("parse {s}: {e}"));
+crates/channels/src/plugin.rs:1239:            let json = serde_json::to_string(&ct).unwrap_or_else(|e| panic!("serialize: {e}"));
+crates/channels/src/plugin.rs:1241:                serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialize: {e}"));
+crates/channels/src/plugin.rs:1308:                .unwrap_or_else(|e| panic!("serialize descriptor for {ct}: {e}"));
+crates/channels/src/plugin.rs:1316:        let json = serde_json::to_string(&InboundMode::None).unwrap();
+crates/channels/src/plugin.rs:1318:        let json = serde_json::to_string(&InboundMode::Polling).unwrap();
+crates/channels/src/plugin.rs:1320:        let json = serde_json::to_string(&InboundMode::GatewayLoop).unwrap();
+crates/channels/src/plugin.rs:1322:        let json = serde_json::to_string(&InboundMode::SocketMode).unwrap();
+crates/channels/src/plugin.rs:1324:        let json = serde_json::to_string(&InboundMode::Webhook).unwrap();
+crates/channels/src/slack_api_url.rs:235:        validate_host(&Url::parse(url).unwrap(), &allow)
+crates/channels/src/slack_api_url.rs:279:            normalize_slack_api_base_url("  https://slack.com/api/  ").unwrap(),
+crates/channels/src/slack_api_url.rs:291:        let ips: Vec<IpAddr> = ips.iter().map(|ip| ip.parse().unwrap()).collect();
+crates/channels/src/contract.rs:247:        Err(other) => panic!("expected BadSignature or MissingHeaders, got: {other}"),
+crates/channels/src/contract.rs:248:        Ok(_) => panic!("verifier must reject requests without signature headers"),
+crates/channels/src/commands.rs:413:                .unwrap_or_else(|| panic!("/{name} is missing from the command registry"));
+crates/channels/src/otp.rs:414:            other => panic!("expected Created, got {other:?}"),
+crates/channels/src/otp.rs:478:        state.challenges.get_mut("user1").unwrap().expires_at =
+crates/channels/src/otp.rs:524:        state.challenges.get_mut("user1").unwrap().expires_at =
+crates/channels/src/otp.rs:571:        state.challenges.get_mut("user1").unwrap().expires_at =
+crates/channels/src/otp.rs:586:            let n: u32 = code.parse().unwrap();
+crates/channels/src/otp.rs:633:            other => panic!("unexpected event: {other:?}"),
+crates/channels/src/registry.rs:717:                .unwrap()
+crates/channels/src/registry.rs:723:            self.accounts.lock().unwrap().remove(account_id);
+crates/channels/src/registry.rs:736:            self.accounts.lock().unwrap().contains_key(account_id)
+crates/channels/src/registry.rs:740:            self.accounts.lock().unwrap().keys().cloned().collect()
+crates/channels/src/registry.rs:899:            .unwrap();
+crates/channels/src/registry.rs:917:            .unwrap();
+crates/channels/src/registry.rs:920:        registry.stop_account("telegram", "bot1").await.unwrap();
+crates/channels/src/registry.rs:937:            .unwrap();
+crates/channels/src/registry.rs:955:            .unwrap();
+crates/channels/src/registry.rs:986:            .unwrap();
+crates/channels/src/registry.rs:990:            .unwrap();
+crates/channels/src/registry.rs:1010:            .unwrap();
+crates/channels/src/registry.rs:1034:            .unwrap();
+crates/channels/src/registry.rs:1042:                .unwrap(),
+crates/channels/src/registry.rs:1049:                .unwrap(),
+crates/channels/src/registry.rs:1054:        tx.send(StreamEvent::Done).await.unwrap();
+crates/channels/src/registry.rs:1060:                .unwrap(),
+crates/channels/src/registry.rs:1084:            .unwrap();
+crates/channels/src/registry.rs:1090:        tx.send(StreamEvent::Done).await.unwrap();
+crates/channels/src/registry.rs:1109:            .unwrap();
+crates/channels/src/registry.rs:1171:            .unwrap();
+crates/channels/src/registry.rs:1179:            .unwrap();
+crates/channels/src/registry.rs:1187:            .unwrap();
+crates/channels/src/registry.rs:1195:            .unwrap();
+crates/channels/src/registry.rs:1203:            .unwrap();
+crates/channels/src/registry.rs:1211:            .unwrap();
+crates/channels/src/registry.rs:1219:            .unwrap();
+crates/channels/src/registry.rs:1227:            .unwrap();
+crates/channels/src/registry.rs:1235:            .unwrap();
+crates/channels/src/registry.rs:1243:            .unwrap();
+crates/channels/src/registry.rs:1251:            .unwrap();
+crates/channels/src/feedback.rs:385:            .unwrap();
+crates/channels/src/feedback.rs:408:                .unwrap();
+crates/channels/src/feedback.rs:409:            assert_eq!(found.expect("linked").trace_id, "trace-1");
+crates/channels/src/feedback.rs:575:            .unwrap();
+crates/channels/src/feedback.rs:653:                .unwrap()
+crates/channels/src/feedback.rs:738:            .unwrap();
+crates/channels/src/feedback.rs:748:                .unwrap()
+crates/channels/src/feedback.rs:767:            .unwrap();
+crates/channels/src/feedback.rs:782:                .unwrap()
+crates/channels/src/channel_webhook_middleware.rs:197:            .unwrap()
+crates/vault/src/vault.rs:414:        let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+crates/vault/src/vault.rs:430:        .unwrap();
+crates/vault/src/vault.rs:444:            .unwrap();
+crates/vault/src/vault.rs:445:        assert_eq!(vault.status().await.unwrap(), VaultStatus::Uninitialized);
+crates/vault/src/vault.rs:453:            .unwrap();
+crates/vault/src/vault.rs:456:        let rk = vault.initialize(&password).await.unwrap();
+crates/vault/src/vault.rs:458:        assert_eq!(vault.status().await.unwrap(), VaultStatus::Unsealed);
+crates/vault/src/vault.rs:462:        assert_eq!(vault.status().await.unwrap(), VaultStatus::Sealed);
+crates/vault/src/vault.rs:465:        vault.unseal(&password).await.unwrap();
+crates/vault/src/vault.rs:466:        assert_eq!(vault.status().await.unwrap(), VaultStatus::Unsealed);
+crates/vault/src/vault.rs:474:            .unwrap();
+crates/vault/src/vault.rs:478:        vault.initialize(&correct_password).await.unwrap();
+crates/vault/src/vault.rs:490:            .unwrap();
+crates/vault/src/vault.rs:493:        let rk = vault.initialize(&password).await.unwrap();
+crates/vault/src/vault.rs:497:        vault.unseal_with_recovery(&phrase).await.unwrap();
+crates/vault/src/vault.rs:498:        assert_eq!(vault.status().await.unwrap(), VaultStatus::Unsealed);
+crates/vault/src/vault.rs:506:            .unwrap();
+crates/vault/src/vault.rs:509:        vault.initialize(&password).await.unwrap();

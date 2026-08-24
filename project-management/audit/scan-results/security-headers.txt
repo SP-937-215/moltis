@@ -1,0 +1,60 @@
+crates/channels/src/plugin.rs:604:    /// Start an OAuth/OIDC login flow. Returns auth URL and CSRF state.
+crates/channels/src/plugin.rs:619:        _csrf_state: &str,
+crates/channels/src/channel_webhook_middleware.rs:5://! (`channel_webhook_gate`) which handles staleness, idempotency, and rate limiting.
+crates/channels/src/channel_webhook_middleware.rs:96:    /// Per-account rate limit exceeded.
+crates/channels/src/channel_webhook_middleware.rs:97:    RateLimited { retry_after: Duration },
+crates/channels/src/channel_webhook_middleware.rs:108:            Self::RateLimited { .. } => "rate_limited",
+crates/channels/src/channel_webhook_middleware.rs:126:            Self::RateLimited { retry_after } => {
+crates/channels/src/channel_webhook_middleware.rs:127:                write!(f, "rate limited (retry after {}s)", retry_after.as_secs())
+crates/channels/src/channel_webhook_middleware.rs:169:/// Rate policy for per-(channel, account) webhook rate limiting.
+crates/channels/src/channel_webhook_middleware.rs:276:            ChannelWebhookRejection::RateLimited {
+crates/channels/src/channel_webhook_middleware.rs:280:            "rate_limited"
+crates/cron/src/service/tests.rs:494:async fn test_rate_limiting() {
+crates/cron/src/service/tests.rs:496:    // Create service with strict rate limit: 3 jobs per 60 seconds.
+crates/cron/src/service/tests.rs:502:        RateLimitConfig {
+crates/cron/src/service/tests.rs:539:    // 4th job should fail due to rate limit.
+crates/cron/src/service/tests.rs:546:            .contains("rate limit exceeded")
+crates/cron/src/service/tests.rs:551:async fn test_rate_limiting_skips_system_jobs() {
+crates/cron/src/service/tests.rs:553:    // Create service with strict rate limit: 1 job per 60 seconds.
+crates/cron/src/service/tests.rs:559:        RateLimitConfig {
+crates/cron/src/service/tests.rs:584:    // System jobs should bypass rate limiting.
+crates/cron/src/service/tests.rs:1078:        RateLimitConfig::default(),
+crates/cron/src/service.rs:52:/// Rate limiting configuration for cron job creation.
+crates/cron/src/service.rs:54:pub struct RateLimitConfig {
+crates/cron/src/service.rs:61:impl Default for RateLimitConfig {
+crates/cron/src/service.rs:70:/// Simple sliding-window rate limiter.
+crates/cron/src/service.rs:71:struct RateLimiter {
+crates/cron/src/service.rs:73:    config: RateLimitConfig,
+crates/cron/src/service.rs:76:impl RateLimiter {
+crates/cron/src/service.rs:77:    fn new(config: RateLimitConfig) -> Self {
+crates/cron/src/service.rs:84:    /// Check if a new job can be created. Returns Ok(()) if allowed, Err if rate limited.
+crates/cron/src/service.rs:96:                "rate limit exceeded: max {} jobs per {} seconds",
+crates/cron/src/service.rs:133:    rate_limiter: Mutex<RateLimiter>,
+crates/cron/src/service.rs:177:            RateLimitConfig::default(),
+crates/cron/src/service.rs:194:            RateLimitConfig::default(),
+crates/cron/src/service.rs:205:        rate_limit_config: RateLimitConfig,
+crates/cron/src/service.rs:213:            rate_limit_config,
+crates/cron/src/service.rs:228:        rate_limit_config: RateLimitConfig,
+crates/cron/src/service.rs:241:            rate_limiter: Mutex::new(RateLimiter::new(rate_limit_config)),
+crates/cron/src/service.rs:340:        // Check rate limit (skip for system jobs like heartbeat).
+crates/cron/src/service.rs:342:            self.rate_limiter.lock().await.check()?;
+crates/observability/src/model.rs:630:        obs.fail("rate limited");
+crates/observability/src/model.rs:633:        assert_eq!(obs.status_message.as_deref(), Some("rate limited"));
+crates/observability/src/exporters/otlp/mod.rs:140:    /// credentials cannot succeed and only burns rate-limit budget.
+crates/observability/src/exporters/otlp/mod.rs:302:    async fn rate_limiting_is_retryable() {
+crates/observability/src/exporters/otlp/mod.rs:332:        // Retrying bad credentials cannot succeed and wastes rate-limit budget.
+crates/msteams/src/errors.rs:13:    /// 429 — rate limited, retry after backoff.
+crates/observability/src/runtime.rs:434:/// rate limit retries in lockstep and re-creates the overload.
+crates/web/src/share.rs:11:        cookie::{Cookie, SameSite},
+crates/web/src/share.rs:114:        cookie.set_same_site(Some(SameSite::Lax));
+crates/httpd/src/auth_routes.rs:340:                    "{SESSION_COOKIE}={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=2592000{domain_attr}{secure_attr}"
+crates/httpd/src/auth_routes.rs:821:        "{SESSION_COOKIE}={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=2592000{domain_attr}{secure_attr}"
+crates/httpd/src/auth_routes.rs:843:        "{SESSION_COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0{domain_attr}{secure_attr}"
+crates/nostr/src/groups.rs:518:            failed: HashMap::from([(bad, "rate-limited".to_string())]),
+crates/matrix/src/plugin.rs:518:        let csrf_state = pending.state.clone();
+crates/matrix/src/plugin.rs:544:                csrf_state: csrf_state.clone(),
+crates/matrix/src/plugin.rs:550:            "state": csrf_state,
+crates/matrix/src/plugin.rs:556:        csrf_state: &str,
+crates/matrix/src/plugin.rs:564:                if pending.as_ref().is_some_and(|p| p.csrf_state == csrf_state) {
+crates/matrix/src/state.rs:21:    pub csrf_state: String,
+crates/matrix/src/oidc.rs:35:    /// CSRF state token (used to match the callback).

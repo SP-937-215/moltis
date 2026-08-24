@@ -1,0 +1,60 @@
+crates/voice/src/stt/whisper.rs:112:    fn is_configured(&self) -> bool {
+crates/voice/src/stt/whisper.rs:224:        assert!(!provider.is_configured());
+crates/voice/src/stt/whisper.rs:227:        assert!(configured.is_configured());
+crates/voice/src/stt/whisper.rs:277:        assert!(provider.is_configured());
+crates/voice/src/stt/groq.rs:108:    fn is_configured(&self) -> bool {
+crates/voice/src/stt/groq.rs:214:        assert!(!provider.is_configured());
+crates/voice/src/stt/groq.rs:217:        assert!(configured.is_configured());
+crates/voice/src/stt/whisper_cli.rs:94:    fn is_configured(&self) -> bool {
+crates/voice/src/stt/whisper_cli.rs:234:        assert!(!provider.is_configured());
+crates/voice/src/stt/elevenlabs.rs:142:    fn is_configured(&self) -> bool {
+crates/voice/src/stt/elevenlabs.rs:300:        assert!(!provider.is_configured());
+crates/voice/src/stt/elevenlabs.rs:303:        assert!(configured.is_configured());
+crates/gateway/src/voice/stt_service.rs:127:                if provider.is_configured() {
+crates/gateway/src/voice/stt_service.rs:198:                if provider.is_configured() {
+crates/gateway/src/voice/stt_service.rs:210:                if provider.is_configured() {
+crates/gateway/src/voice/stt_service.rs:222:                if provider.is_configured() {
+crates/gateway/src/voice/stt_service.rs:234:                if provider.is_configured() {
+crates/gateway/src/voice/stt_service.rs:267:    fn list_providers() -> Vec<(SttProviderId, bool)> {
+crates/gateway/src/voice/stt_service.rs:308:                .is_configured(),
+crates/gateway/src/voice/stt_service.rs:317:                .is_configured(),
+crates/gateway/src/voice/stt_service.rs:344:        Self::list_providers()
+crates/gateway/src/voice/stt_service.rs:355:        let providers = Self::list_providers();
+crates/gateway/src/voice/stt_service.rs:367:        let providers: Vec<_> = Self::list_providers()
+crates/gateway/src/voice/stt_service.rs:550:        let providers = LiveSttService::list_providers();
+crates/gateway/src/voice/stt_service.rs:578:        let providers = LiveSttService::list_providers();
+crates/voice/src/stt/sherpa_onnx.rs:128:    fn is_configured(&self) -> bool {
+crates/voice/src/stt/sherpa_onnx.rs:217:        assert!(!provider.is_configured());
+crates/gateway/src/voice/tts_service.rs:11:    AudioFormat, CoquiTts, ElevenLabsTts, GoogleTts, OpenAiTts, PiperTts, SynthesizeRequest,
+crates/gateway/src/voice/tts_service.rs:83:            coqui: moltis_voice::CoquiTtsConfig {
+crates/gateway/src/voice/tts_service.rs:84:                endpoint: cfg.voice.tts.coqui.endpoint.clone(),
+crates/gateway/src/voice/tts_service.rs:85:                model: cfg.voice.tts.coqui.model.clone(),
+crates/gateway/src/voice/tts_service.rs:110:                if provider.is_configured() {
+crates/gateway/src/voice/tts_service.rs:122:                if piper.is_configured() {
+crates/gateway/src/voice/tts_service.rs:128:            TtsProviderId::Coqui => {
+crates/gateway/src/voice/tts_service.rs:129:                let coqui = CoquiTts::new(&config.coqui);
+crates/gateway/src/voice/tts_service.rs:130:                if coqui.is_configured() {
+crates/gateway/src/voice/tts_service.rs:131:                    Some(Box::new(coqui) as Box<dyn TtsProvider + Send + Sync>)
+crates/gateway/src/voice/tts_service.rs:140:    fn list_providers() -> Vec<(TtsProviderId, bool)> {
+crates/gateway/src/voice/tts_service.rs:153:            (TtsProviderId::Coqui, true), // Always available if server running
+crates/gateway/src/voice/tts_service.rs:163:        Self::list_providers()
+crates/gateway/src/voice/tts_service.rs:187:        let providers = Self::list_providers();
+crates/gateway/src/voice/tts_service.rs:201:        let providers: Vec<_> = Self::list_providers()
+crates/gateway/src/voice/tts_service.rs:416:                for (fallback_id, configured) in Self::list_providers() {
+crates/gateway/src/voice/tts_service.rs:556:        // Coqui is always considered "configured" (local service)
+crates/gateway/src/voice/tts_service.rs:567:        // 5 providers: elevenlabs, openai, google, piper, coqui
+crates/gateway/src/voice/tts_service.rs:578:        assert!(ids.contains(&"coqui"));
+crates/voice/src/stt/mock.rs:33:    fn is_configured(&self) -> bool {
+crates/voice/src/stt/mock.rs:69:    async fn mock_stt_is_configured() {
+crates/voice/src/stt/mock.rs:70:        assert!(MockStt::new("test").is_configured());
+crates/voice/src/stt/voxtral_local.rs:77:    fn is_configured(&self) -> bool {
+crates/voice/src/stt/voxtral_local.rs:78:        // We can't do async check in is_configured, so we require explicit configuration.
+crates/voice/src/stt/voxtral_local.rs:118:        assert!(!provider.is_configured());
+crates/voice/src/stt/voxtral_local.rs:122:    fn test_is_configured_with_model() {
+crates/voice/src/stt/voxtral_local.rs:124:        assert!(provider.is_configured());
+crates/voice/src/stt/voxtral_local.rs:128:    fn test_is_configured_with_custom_endpoint() {
+crates/voice/src/stt/voxtral_local.rs:131:        assert!(provider.is_configured());
+crates/voice/src/stt/whisper_local.rs:76:    fn is_configured(&self) -> bool {
+crates/voice/src/stt/whisper_local.rs:117:        assert!(provider.is_configured());
+crates/voice/src/stt/google.rs:100:    fn is_configured(&self) -> bool {
+crates/voice/src/stt/google.rs:279:        assert!(!provider.is_configured());

@@ -122,10 +122,9 @@ impl AppleContainerSandbox {
     }
 
     fn container_prefix(&self) -> &str {
-        self.config
-            .container_prefix
-            .as_deref()
-            .unwrap_or("moltis-sandbox")
+        // Apple Container has a short name-length budget (#1137). Keep the
+        // default prefix tiny; operators can still override via config.
+        self.config.container_prefix.as_deref().unwrap_or("ms")
     }
 
     pub(crate) fn container_policy_fingerprint(&self) -> String {

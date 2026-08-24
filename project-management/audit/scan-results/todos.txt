@@ -1,0 +1,40 @@
+apps/courier/README.md:22:  --key-path /path/to/AuthKey_XXXXXXXXXX.p8 \
+apps/courier/README.md:23:  --key-id XXXXXXXXXX \
+apps/ios/local.xcconfig.example:6:DEVELOPMENT_TEAM = XXXXXXXXXX
+crates/whatsapp/src/memory_store.rs:7://! TODO: Replace with `whatsapp-rust-sqlite-storage` once sqlx 0.9 stabilises
+apps/courier/deploy/group_vars/courier.yml:8:courier_key_id: XXXXXXXXXX
+apps/courier/deploy/group_vars/courier.yml:9:courier_team_id: XXXXXXXXXX
+crates/tools/src/skill_tools/crud_write.rs:701:            "patches": [{ "find": "AAA", "replace": "XXX" }]
+crates/import-core/src/report.rs:123:    /// Add a TODO item for an unsupported feature.
+crates/auto-reply/src/reply.rs:11:/// TODO: load session → parse directives → invoke agent → chunk → return reply
+crates/vault/src/recovery.rs:4://! `XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX` (alphanumeric groups).
+crates/vault/src/recovery.rs:64:    // Format as XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX (8 groups of 4).
+crates/skills/src/assets/research/research-paper-writing/templates/acl/acl_natbib.bst:226:            { "XXX" }
+crates/tools/src/sandbox/daytona.rs:131:            "decoded=$(mktemp /tmp/moltis-cmd.XXXXXX) || exit 125; \
+crates/skills/src/assets/research/research-paper-writing/templates/neurips2025/neurips.sty:324:\newcommand{\answerTODO}[1][]{\textcolor{red}{\bf [TODO]}}
+crates/skills/src/assets/research/research-paper-writing/templates/neurips2025/neurips.sty:325:\newcommand{\justificationTODO}[1][]{\textcolor{red}{\bf [TODO]}}
+crates/chat/src/compaction_run/structured.rs:74:it; decisions made and their rationale; TODOs, open questions, and \
+crates/skills/src/assets/research/research-paper-writing/templates/icml2026/example_paper.tex:97:  \icmlaffiliation{yyy}{Department of XXX, University of YYY, Location, Country}
+crates/openclaw-import/src/report.rs:140:    /// Add a TODO item for an unsupported feature.
+crates/web/src/assets/css/vendor/xterm.css:80:    /* TODO: Composition position got messed up somewhere */
+crates/openclaw-import/src/lib.rs:312:    // Always add TODO items for unsupported features
+crates/openclaw-import/src/lib.rs:834:        // Check TODOs generated (sub-agents no longer a TODO since presets are supported)
+crates/openclaw-import/src/types.rs:82:    /// Unsupported channels — kept as raw values for TODO reporting.
+crates/skills/src/assets/autonomous-ai-agents/claude-code/SKILL.md:198:terminal(command="cat src/*.py | claude -p 'Find all TODO comments' --max-turns 1", timeout=60)
+crates/skills/src/assets/research/research-paper-writing/SKILL.md:139:### Step 0.5: Create a TODO List
+crates/skills/src/assets/research/research-paper-writing/SKILL.md:144:Research Paper TODO:
+crates/skills/src/assets/research/research-paper-writing/SKILL.md:330:\cite{PLACEHOLDER_author2024_verify_this}  % TODO: Verify this citation exists
+crates/skills/src/assets/research/research-paper-writing/SKILL.md:2284:| Experiment priority | When TODO list has more experiments than time allows |
+crates/gateway/src/methods/gateway.rs:185:/// TODO: store Arc<MethodRegistry> on GatewayState so this handler can query
+crates/skills/src/assets/github/github-code-review/SKILL.md:83:# Debug statements, TODOs, console.logs left behind
+crates/skills/src/assets/github/github-code-review/SKILL.md:84:git diff main...HEAD | grep -n "print(\|console\.log\|TODO\|FIXME\|HACK\|XXX\|debugger"
+crates/skills/src/assets/software-development/skill-creator/SKILL.md:292:- Generates a SKILL.md template with proper frontmatter and TODO placeholders
+crates/skills/src/assets/software-development/skill-creator/scripts/init_skill.py:25:description: [TODO: Complete and informative explanation of what the skill does and when to use it. Include WHEN to use this skill - specific scenarios, file types, or tasks that trigger it.]
+crates/skills/src/assets/software-development/skill-creator/scripts/init_skill.py:32:[TODO: 1-2 sentences explaining what this skill enables]
+crates/skills/src/assets/software-development/skill-creator/scripts/init_skill.py:36:[TODO: Choose the structure that best fits this skill's purpose. Common patterns:
+crates/skills/src/assets/software-development/skill-creator/scripts/init_skill.py:62:## [TODO: Replace with the first main section based on chosen structure]
+crates/skills/src/assets/software-development/skill-creator/scripts/init_skill.py:64:[TODO: Add content here. See examples in existing skills:
+crates/skills/src/assets/software-development/skill-creator/scripts/init_skill.py:124:    # TODO: Add actual script logic here
+crates/skills/src/assets/software-development/skill-creator/scripts/init_skill.py:307:    print("1. Edit SKILL.md to complete the TODO items and update the description")
+crates/web/ui/src/pages/sections/VaultSection.tsx:144:						placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
+crates/skills/src/assets/mlops/training/axolotl/references/api.md:1610:TODO: Remove when upstream added PR to release

@@ -1,0 +1,60 @@
+crates/gateway/src/push.rs:1093:                "unsafe endpoint was accepted: {endpoint}"
+crates/portable/src/import.rs:233:            warnings.push(format!("skipped unsafe path: {}", raw_path.display()));
+crates/agents/src/docs.rs:129:                    warn!(path = %file.path().display(), "skipping bundled doc with unsafe path");
+crates/providers/src/local_gguf/provider.rs:47:unsafe impl Send for SendSyncBackend {}
+crates/providers/src/local_gguf/provider.rs:49:unsafe impl Sync for SendSyncBackend {}
+crates/providers/src/local_llm/models.rs:618:            .with_context(|| format!("unsafe file path returned by HuggingFace: {filename:?}"))?;
+crates/providers/src/local_llm/models.rs:1330:                "unsafe path should be rejected: {path:?}"
+crates/providers/src/local_llm/models.rs:1342:        assert!(error.to_string().contains("unsafe file path"));
+crates/providers/src/local_llm/backend.rs:284:    unsafe impl Send for SendSyncBackend {}
+crates/providers/src/local_llm/backend.rs:286:    unsafe impl Sync for SendSyncBackend {}
+crates/skills/src/clawhub.rs:671:            Error::Install(format!("zip archive contains unsafe path: {raw_name:?}"))
+crates/skills/src/clawhub.rs:952:        assert!(error.to_string().contains("unsafe path"));
+crates/swift-bridge/src/chat.rs:161:    unsafe extern "C" fn(event_json: *const c_char, user_data: *mut c_void);
+crates/swift-bridge/src/chat.rs:197:unsafe impl Send for StreamCallbackCtx {}
+crates/swift-bridge/src/chat.rs:207:            unsafe {
+crates/swift-bridge/src/chat.rs:228:pub unsafe extern "C" fn moltis_chat_stream(
+crates/swift-bridge/src/chat.rs:242:            unsafe {
+crates/skills/src/formats.rs:183:                tracing::warn!(plugin = %plugin_name, source = %source, "skipping marketplace plugin with unsafe source path");
+crates/skills/src/formats.rs:193:                    tracing::warn!(plugin = %plugin_name, skill = %skill_ref, "skipping marketplace skill with unsafe path");
+crates/swift-bridge/src/callbacks.rs:16:pub(crate) type LogCallback = unsafe extern "C" fn(log_json: *const c_char);
+crates/swift-bridge/src/callbacks.rs:53:            unsafe {
+crates/swift-bridge/src/callbacks.rs:66:pub(crate) type SessionEventCallback = unsafe extern "C" fn(event_json: *const c_char);
+crates/swift-bridge/src/callbacks.rs:92:            unsafe {
+crates/swift-bridge/src/callbacks.rs:105:pub(crate) type NetworkAuditCallback = unsafe extern "C" fn(event_json: *const c_char);
+crates/swift-bridge/src/callbacks.rs:148:            unsafe {
+crates/skills/src/install.rs:257:                    "archive contains unsafe path component: {}",
+crates/swift-bridge/src/helpers.rs:80:    let c_str = unsafe { CStr::from_ptr(ptr) };
+crates/swift-bridge/src/ffi_core.rs:233:pub unsafe extern "C" fn moltis_free_string(ptr: *mut c_char) {
+crates/swift-bridge/src/ffi_core.rs:241:    let _ = unsafe { CString::from_raw(ptr) };
+crates/swift-bridge/src/ffi_core.rs:253:pub unsafe extern "C" fn moltis_set_log_callback(callback: LogCallback) {
+crates/swift-bridge/src/ffi_core.rs:269:pub unsafe extern "C" fn moltis_set_session_event_callback(callback: SessionEventCallback) {
+crates/swift-bridge/src/ffi_core.rs:309:pub unsafe extern "C" fn moltis_set_network_audit_callback(callback: NetworkAuditCallback) {
+crates/swift-bridge/src/ffi_core.rs:623:        let owned = unsafe { CString::from_raw(ptr) };
+crates/swift-bridge/src/ffi_core.rs:756:        unsafe {
+crates/swift-bridge/src/ffi_core.rs:769:        unsafe extern "C" fn test_callback(event_json: *const c_char, user_data: *mut c_void) {
+crates/swift-bridge/src/ffi_core.rs:772:            unsafe {
+crates/swift-bridge/src/ffi_core.rs:780:        unsafe {
+crates/swift-bridge/src/ffi_core.rs:785:        let events = unsafe { Arc::from_raw(user_data as *const Mutex<Vec<String>>) };
+crates/swift-bridge/src/ffi_core.rs:861:        unsafe extern "C" fn test_callback(event_json: *const c_char, user_data: *mut c_void) {
+crates/swift-bridge/src/ffi_core.rs:864:            unsafe {
+crates/swift-bridge/src/ffi_core.rs:876:        unsafe {
+crates/swift-bridge/src/ffi_core.rs:880:        let events = unsafe { Arc::from_raw(user_data as *const Mutex<Vec<String>>) };
+crates/swift-bridge/src/ffi_auth.rs:281:        let owned = unsafe { CString::from_raw(ptr) };
+crates/skills/src/portability.rs:381:                    "bundle contains unsafe path '{}'",
+crates/swift-bridge/src/ffi_config.rs:781:        let owned = unsafe { CString::from_raw(ptr) };
+crates/swift-bridge/src/ffi_sessions.rs:168:pub unsafe extern "C" fn moltis_session_chat_stream(
+crates/swift-bridge/src/ffi_sessions.rs:180:            unsafe {
+crates/swift-bridge/src/ffi_sessions.rs:354:        let owned = unsafe { CString::from_raw(ptr) };
+crates/config/src/schema/tests.rs:1068:    // deny unsafe code, and `std::env::set_var` is unsafe.)
+crates/tools/src/wasm_tool_runner.rs:185:    pub unsafe fn new_precompiled(
+crates/tools/src/wasm_tool_runner.rs:194:        unsafe {
+crates/tools/src/wasm_tool_runner.rs:212:    pub unsafe fn new_http_precompiled(
+crates/tools/src/wasm_tool_runner.rs:222:        unsafe {
+crates/tools/src/wasm_tool_runner.rs:270:    unsafe fn new_inner_precompiled(
+crates/tools/src/wasm_tool_runner.rs:280:        let component = unsafe {
+crates/tools/src/wasm_tool_runner.rs:503:                unsafe {
+crates/tools/src/wasm_tool_runner.rs:552:                        unsafe {
+crates/tools/src/wasm_tool_runner.rs:620:                        unsafe {
+crates/tools/src/wasm_engine.rs:79:    pub unsafe fn deserialize_component(
+crates/tools/src/wasm_engine.rs:91:            unsafe { wasmtime::component::Component::deserialize(&self.engine, precompiled)? };

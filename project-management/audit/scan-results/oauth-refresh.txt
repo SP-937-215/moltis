@@ -1,0 +1,80 @@
+crates/oauth/src/device_flow.rs:80:    refresh_token: Option<String>,
+crates/oauth/src/device_flow.rs:137:                refresh_token: body.refresh_token.map(Secret::new),
+crates/oauth/src/device_flow.rs:441:        assert!(tokens.refresh_token.is_none());
+crates/oauth/src/device_flow.rs:451:                    "refresh_token": "rt_456",
+crates/oauth/src/device_flow.rs:470:                .refresh_token
+crates/oauth/src/storage.rs:9:pub struct TokenStore {
+crates/oauth/src/storage.rs:13:impl TokenStore {
+crates/oauth/src/storage.rs:123:impl Default for TokenStore {
+crates/oauth/src/lib.rs:31:    storage::TokenStore,
+crates/oauth/src/discovery.rs:196:            "refresh_token".to_string(),
+crates/oauth/src/types.rs:43:    pub refresh_token: Option<Secret<String>>,
+crates/oauth/src/types.rs:62:                "refresh_token",
+crates/oauth/src/types.rs:63:                &self.refresh_token.as_ref().map(|_| "[REDACTED]"),
+crates/oauth/src/flow.rs:128:    pub async fn refresh(&self, refresh_token: &str) -> Result<OAuthTokens> {
+crates/oauth/src/flow.rs:133:            ("grant_type".to_string(), "refresh_token".to_string()),
+crates/oauth/src/flow.rs:134:            ("refresh_token".to_string(), refresh_token.to_string()),
+crates/oauth/src/flow.rs:174:    let refresh_token = resp["refresh_token"].as_str().map(|s| s.to_string());
+crates/oauth/src/flow.rs:187:        refresh_token: refresh_token.map(Secret::new),
+crates/providers/src/kimi_code.rs:11:    moltis_oauth::{OAuthTokens, TokenStore, kimi_headers},
+crates/providers/src/kimi_code.rs:40:    OAuthTokenStore { token_store: TokenStore },
+crates/providers/src/kimi_code.rs:59:            auth_mode: AuthMode::OAuthTokenStore {
+crates/providers/src/kimi_code.rs:60:                token_store: TokenStore::new(),
+crates/providers/src/kimi_code.rs:78:        matches!(self.auth_mode, AuthMode::OAuthTokenStore { .. })
+crates/providers/src/kimi_code.rs:84:            AuthMode::OAuthTokenStore { .. } => self.get_valid_oauth_token().await,
+crates/providers/src/kimi_code.rs:96:        let AuthMode::OAuthTokenStore { token_store } = &self.auth_mode else {
+crates/providers/src/kimi_code.rs:112:                if let Some(ref refresh_token) = tokens.refresh_token {
+crates/providers/src/kimi_code.rs:115:                        refresh_access_token(self.client, refresh_token.expose_secret()).await?;
+crates/providers/src/kimi_code.rs:141:    refresh_token: &str,
+crates/providers/src/kimi_code.rs:150:            ("grant_type", "refresh_token"),
+crates/providers/src/kimi_code.rs:151:            ("refresh_token", refresh_token),
+crates/providers/src/kimi_code.rs:164:        refresh_token: Option<String>,
+crates/providers/src/kimi_code.rs:179:        refresh_token: body.refresh_token.map(Secret::new),
+crates/providers/src/kimi_code.rs:188:    TokenStore::new().load(PROVIDER_NAME).is_some()
+crates/providers/src/kimi_code.rs:473:                AuthMode::OAuthTokenStore { .. } => AuthMode::OAuthTokenStore {
+crates/providers/src/kimi_code.rs:474:                    token_store: TokenStore::new(),
+crates/providers/src/openai_codex/catalog.rs:4:    moltis_oauth::TokenStore,
+crates/providers/src/openai_codex/catalog.rs:47:    let refresh_token = tokens
+crates/providers/src/openai_codex/catalog.rs:48:        .get("refresh_token")
+crates/providers/src/openai_codex/catalog.rs:53:        refresh_token: refresh_token.map(Secret::new),
+crates/providers/src/openai_codex/catalog.rs:71:    TokenStore::new().load("openai-codex").is_some() || load_codex_cli_tokens().is_some()
+crates/providers/src/openai_codex/catalog.rs:282:    let tokens = TokenStore::new()
+crates/providers/src/xai_oauth.rs:19:    moltis_oauth::{OAuthTokens, TokenStore, xai_proxy_headers},
+crates/providers/src/xai_oauth.rs:47:/// Process-wide single-flight lock for xAI refresh-token rotation.
+crates/providers/src/xai_oauth.rs:52:static REFRESH_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
+crates/providers/src/xai_oauth.rs:60:    token_store: TokenStore,
+crates/providers/src/xai_oauth.rs:71:            token_store: TokenStore::new(),
+crates/providers/src/xai_oauth.rs:84:    fn with_token_store(mut self, token_store: TokenStore) -> Self {
+crates/providers/src/xai_oauth.rs:109:    /// Refresh is single-flight: under the process-wide lock we re-read the
+crates/providers/src/xai_oauth.rs:123:        let _guard = REFRESH_LOCK.lock().await;
+crates/providers/src/xai_oauth.rs:135:        let refresh_token = tokens.refresh_token.as_ref().ok_or_else(|| {
+crates/providers/src/xai_oauth.rs:143:            refresh_access_token(self.client, refresh_token.expose_secret()).await?;
+crates/providers/src/xai_oauth.rs:167:    refresh_token: &str,
+crates/providers/src/xai_oauth.rs:175:            ("grant_type", "refresh_token"),
+crates/providers/src/xai_oauth.rs:176:            ("refresh_token", refresh_token),
+crates/providers/src/xai_oauth.rs:200:        refresh_token: Option<String>,
+crates/providers/src/xai_oauth.rs:207:    let Some(new_refresh) = body.refresh_token else {
+crates/providers/src/xai_oauth.rs:209:            "xai-oauth token refresh omitted refresh_token; refusing to persist a consumed token"
+crates/providers/src/xai_oauth.rs:218:        refresh_token: Some(Secret::new(new_refresh)),
+crates/providers/src/xai_oauth.rs:227:    TokenStore::new().load(PROVIDER_NAME).is_some()
+crates/providers/src/xai_oauth.rs:507:            token_store: TokenStore::new(),
+crates/providers/src/xai_oauth.rs:592:        let store = TokenStore::with_path(temp.path().join("oauth_tokens.json"));
+crates/providers/src/xai_oauth.rs:596:                refresh_token: Some(Secret::new("refresh-token".into())),
+crates/providers/src/xai_oauth.rs:659:    async fn refresh_is_single_flight_under_lock() {
+crates/providers/src/xai_oauth.rs:661:        let store = TokenStore::with_path(temp.path().join("oauth_tokens.json"));
+crates/providers/src/xai_oauth.rs:665:                refresh_token: Some(Secret::new("refresh-1".into())),
+crates/providers/src/xai_oauth.rs:681:                    assert!(form.contains("grant_type=refresh_token"));
+crates/providers/src/xai_oauth.rs:682:                    assert!(form.contains("refresh_token=refresh-1"));
+crates/providers/src/xai_oauth.rs:688:                        "refresh_token": "refresh-2",
+crates/providers/src/xai_oauth.rs:711:                ("grant_type", "refresh_token"),
+crates/providers/src/xai_oauth.rs:712:                ("refresh_token", "refresh-1"),
+crates/providers/src/xai_oauth.rs:724:                refresh_token: Some(Secret::new("refresh-2".into())),
+crates/providers/src/openai_codex.rs:8:    moltis_oauth::{OAuthFlow, TokenStore, load_oauth_config},
+crates/providers/src/openai_codex.rs:40:    token_store: TokenStore,
+crates/providers/src/openai_codex.rs:86:            token_store: TokenStore::new(),
+crates/providers/src/openai_codex.rs:152:                if let Some(ref refresh_token) = tokens.refresh_token {
+crates/providers/src/openai_codex.rs:157:                    let refresh = refresh_token.expose_secret().clone();
+crates/providers/src/openai_codex.rs:1036:                "refresh_token": "test_refresh_token"
+crates/providers/src/openai_codex.rs:1043:                .refresh_token
+crates/providers/src/openai_codex.rs:1046:            Some("test_refresh_token")
+crates/providers/src/openai_codex.rs:1065:        assert!(tokens.refresh_token.is_none());

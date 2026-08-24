@@ -134,6 +134,12 @@ WORKDIR /home/moltis
 # and OAuth callback port (used by providers with pre-registered redirect URIs).
 EXPOSE 13131 13132 1455
 
+# Lightweight process liveness probe for orchestrators (AUD-2026-001 CICD-002).
+# `moltis --version` confirms the binary is runnable inside the image; deeper
+# readiness should use an external probe against the published gateway port.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD ["moltis", "--version"]
+
 # Bind 0.0.0.0 so Docker port forwarding works (localhost only binds to
 # the container's loopback, making the port unreachable from the host).
 ENTRYPOINT ["moltis"]

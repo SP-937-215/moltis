@@ -101,18 +101,7 @@ impl CredentialStore {
         store.init().await?;
         let has = store.has_password().await? || store.has_passkeys().await?;
         store.setup_complete.store(has, Ordering::Relaxed);
-        sqlx::query(
-            "INSERT OR IGNORE INTO auth_state (id, auth_disabled, updated_at) VALUES (1, ?, datetime('now'))",
-        )
-        .bind(if auth_config.disabled { 1_i64 } else { 0_i64 })
-        .execute(&store.pool)
-        .await?;
-        let db_disabled: Option<(i64,)> =
-            sqlx::query_as("SELECT auth_disabled FROM auth_state WHERE id = 1")
-                .fetch_optional(&store.pool)
-                .await?;
-        let disabled = db_disabled.map_or(auth_config.disabled, |(value,)| value != 0);
-        store.auth_disabled.store(disabled, Ordering::Relaxed);
+        store.sync_auth_disabled_from_config(auth_config.disabled).await?;
         Ok(store)
     }
 
@@ -133,19 +122,42 @@ impl CredentialStore {
         store.init().await?;
         let has = store.has_password().await? || store.has_passkeys().await?;
         store.setup_complete.store(has, Ordering::Relaxed);
+        store.sync_auth_disabled_from_config(auth_config.disabled).await?;
+        Ok(store)
+    }
+
+    /// Reconcile SQLite `auth_state.auth_disabled` with config.
+    ///
+    /// `auth.disabled = true` in config always wins (Docker/local single-user).
+    /// `INSERT OR IGNORE` alone left stale `0` rows after operators flipped the
+    /// TOML flag, which made middleware ignore `auth.disabled` (#1112).
+    async fn sync_auth_disabled_from_config(&self, config_disabled: bool) -> Result<()> {
+        if config_disabled {
+            sqlx::query(
+                "INSERT INTO auth_state (id, auth_disabled, updated_at)
+                 VALUES (1, 1, datetime('now'))
+                 ON CONFLICT(id) DO UPDATE SET
+                   auth_disabled = 1,
+                   updated_at = datetime('now')",
+            )
+            .execute(&self.pool)
+            .await?;
+            self.auth_disabled.store(true, Ordering::Relaxed);
+            return Ok(());
+        }
+
         sqlx::query(
-            "INSERT OR IGNORE INTO auth_state (id, auth_disabled, updated_at) VALUES (1, ?, datetime('now'))",
+            "INSERT OR IGNORE INTO auth_state (id, auth_disabled, updated_at) VALUES (1, 0, datetime('now'))",
         )
-        .bind(if auth_config.disabled { 1_i64 } else { 0_i64 })
-        .execute(&store.pool)
+        .execute(&self.pool)
         .await?;
         let db_disabled: Option<(i64,)> =
             sqlx::query_as("SELECT auth_disabled FROM auth_state WHERE id = 1")
-                .fetch_optional(&store.pool)
+                .fetch_optional(&self.pool)
                 .await?;
-        let disabled = db_disabled.map_or(auth_config.disabled, |(value,)| value != 0);
-        store.auth_disabled.store(disabled, Ordering::Relaxed);
-        Ok(store)
+        let disabled = db_disabled.is_some_and(|(value,)| value != 0);
+        self.auth_disabled.store(disabled, Ordering::Relaxed);
+        Ok(())
     }
 
     /// Initialize auth tables.

@@ -1,0 +1,24 @@
+crates/cron/src/heartbeat.rs:132:pub fn is_within_active_hours(start: &str, end: &str, timezone: &str) -> bool {
+crates/cron/src/heartbeat.rs:354:    // ── is_within_active_hours ───────────────────────────────────────────
+crates/cron/src/heartbeat.rs:358:        assert!(is_within_active_hours("invalid", "24:00", "local"));
+crates/cron/src/heartbeat.rs:362:    fn active_hours_normal_window() {
+crates/cron/src/heartbeat.rs:365:        let _ = is_within_active_hours("08:00", "24:00", "local");
+crates/cron/src/heartbeat.rs:366:        let _ = is_within_active_hours("09:00", "17:00", "UTC");
+crates/cron/src/heartbeat.rs:370:    fn active_hours_overnight_window() {
+crates/cron/src/heartbeat.rs:371:        let _ = is_within_active_hours("22:00", "06:00", "local");
+crates/graphql/src/types/definitions.rs:283:    pub active_hours: Option<HeartbeatActiveHours>,
+crates/config/src/template.rs:660:# [heartbeat.active_hours]
+crates/config/src/schema/system.rs:207:    pub active_hours: ActiveHoursConfig,
+crates/config/src/schema/system.rs:235:            active_hours: ActiveHoursConfig::default(),
+crates/gateway/src/methods/services/heartbeat_patch.rs:55:                "active_hours": {"start": "07:00", "end": "23:00", "timezone": "local"},
+crates/gateway/src/methods/services/heartbeat_patch.rs:66:    fn partial_active_hours_moves_only_the_keys_it_carries() -> anyhow::Result<()> {
+crates/gateway/src/methods/services/heartbeat_patch.rs:68:            active_hours: moltis_config::schema::ActiveHoursConfig {
+crates/gateway/src/methods/services/heartbeat_patch.rs:78:            &serde_json::json!({"active_hours": {"start": "07:00"}}),
+crates/gateway/src/methods/services/heartbeat_patch.rs:81:        assert_eq!(saved.active_hours.start, "07:00");
+crates/gateway/src/methods/services/heartbeat_patch.rs:82:        assert_eq!(saved.active_hours.end, "21:00");
+crates/gateway/src/methods/services/heartbeat_patch.rs:83:        assert_eq!(saved.active_hours.timezone, "UTC");
+crates/httpd/src/tools_routes.rs:515:        && config.heartbeat.active_hours.start == config.heartbeat.active_hours.end
+crates/httpd/src/tools_routes.rs:518:            "Heartbeat active_hours start and end are the same. Heartbeat may not run.".to_string(),
+crates/config/src/validate/tests/common.rs:124:[heartbeat.active_hours]
+crates/config/src/validate/schema_map.rs:287:    let active_hours = || {
+crates/config/src/validate/schema_map.rs:665:                ("active_hours", active_hours()),

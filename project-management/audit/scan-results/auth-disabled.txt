@@ -1,0 +1,40 @@
+crates/auth/src/credential_store/sessions.rs:81:    /// Reads `auth.disabled` from the discovered config file.
+crates/auth/src/credential_store/sessions.rs:111:            sqlx::query_as("SELECT auth_disabled FROM auth_state WHERE id = 1")
+crates/auth/src/credential_store/sessions.rs:114:        let disabled = db_disabled.map_or(auth_config.disabled, |(value,)| value != 0);
+crates/auth/src/credential_store/sessions.rs:143:            sqlx::query_as("SELECT auth_disabled FROM auth_state WHERE id = 1")
+crates/auth/src/credential_store/sessions.rs:146:        let disabled = db_disabled.map_or(auth_config.disabled, |(value,)| value != 0);
+crates/auth/src/credential_store/sessions.rs:297:             SET auth_disabled = excluded.auth_disabled, updated_at = excluded.updated_at",
+crates/auth/src/credential_store/sessions.rs:306:        moltis_config::update_config(|c| c.auth.disabled = disabled)?;
+crates/auth/src/credential_store/sessions.rs:436:        moltis_config::update_config(|c| c.auth.disabled = false).map_err(Error::from)?;
+crates/auth/src/credential_store.rs:36:    /// When true, auth has been explicitly disabled via "remove all auth".
+crates/cli/src/auth_commands.rs:312:    fn reset_password_message_describes_disabled_auth_state() {
+crates/cli/src/tailscale_commands.rs:57:            let has_password = !config.auth.disabled;
+crates/swift-bridge/src/ffi_auth.rs:46:            auth_disabled: BRIDGE.credential_store.is_auth_disabled(),
+crates/config/src/template.rs:67:# disabled = false                  # true = disable auth entirely (DANGEROUS if exposed)
+crates/config/src/loader/tests/layered.rs:260:    assert!(!config.auth.disabled);
+crates/config/src/loader/tests/layered.rs:291:    config.auth.disabled = true;
+crates/config/src/loader/tests/layered.rs:612:    // auth.disabled differs → kept
+crates/config/src/loader/tests/layered.rs:707:        shadowed.contains(&"auth.disabled".to_string()),
+crates/config/src/loader/tests/layered.rs:708:        "should detect auth.disabled as shadowed"
+crates/config/src/loader/tests/layered.rs:729:        !shadowed.contains(&"auth.disabled".to_string()),
+crates/config/src/loader/tests/core.rs:62:    assert!(!config.auth.disabled);
+crates/config/src/loader/tests/core.rs:65:    assert!(config.auth.disabled);
+crates/config/src/loader/tests/core.rs:87:    assert!(!config.auth.disabled);
+crates/config/src/loader/tests/core.rs:113:    assert!(config.auth.disabled);
+crates/config/src/loader/tests/core.rs:241:    config.auth.disabled = true;
+crates/config/src/loader/tests/core.rs:945:    config.auth.disabled = true;
+crates/config/src/loader/tests/core.rs:1140:    assert!(config.auth.disabled);
+crates/config/src/validate/semantic.rs:132:    // auth.disabled + non-localhost
+crates/config/src/validate/semantic.rs:133:    if config.auth.disabled && !is_localhost {
+crates/config/src/validate/semantic.rs:668:    if config.netbird.mode == "serve" && config.auth.disabled {
+crates/config/src/validate/semantic.rs:673:            message: "NetBird serve mode is enabled while auth.disabled is true; NetBird mesh peers will be blocked with setup required until authentication is configured".into(),
+crates/config/src/validate/semantic.rs:677:    if config.ngrok.enabled && config.auth.disabled {
+crates/config/src/validate/semantic.rs:682:            message: "ngrok is enabled while auth.disabled is true; remote visitors will be blocked with setup required until authentication is configured".into(),
+crates/config/src/validate/semantic.rs:686:    if config.cloudflare_tunnel.enabled && config.auth.disabled {
+crates/config/src/validate/semantic.rs:691:            message: "Cloudflare Tunnel is enabled while auth.disabled is true; remote visitors will be blocked with setup required until authentication is configured".into(),
+crates/config/src/loader/config_io.rs:749:/// - `MOLTIS_AUTH_DISABLED=true` → `auth.disabled = true`
+crates/mcp/src/sse_transport.rs:604:    async fn test_sse_transport_200_no_auth() {
+crates/config/src/validate/tests/defaults.rs:26:        shadowed_paths.contains(&"auth.disabled"),
+crates/config/src/validate/tests/defaults.rs:27:        "should detect auth.disabled as shadowed, got: {shadowed_paths:?}"
+crates/mcp/src/manager.rs:1164:    async fn test_reauth_server_no_auth_provider() {
+crates/config/src/validate/tests/security.rs:218:        "expected security warning for NetBird serve mode with disabled auth, got: {:?}",
