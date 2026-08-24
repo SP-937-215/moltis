@@ -229,6 +229,7 @@ pub fn has_stored_tokens() -> bool {
 
 /// Known SuperGrok / Heavy subscription models (fallback catalog).
 pub const XAI_OAUTH_MODELS: &[(&str, &str)] = &[
+    ("grok-4.6", "Grok 4.6"),
     ("grok-4.5", "Grok 4.5"),
     ("grok-4.3", "Grok 4.3"),
     ("grok-build", "Grok Build"),

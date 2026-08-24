@@ -252,7 +252,7 @@ consume SuperGrok / SuperGrok Heavy / X Premium+ quota.
 
 1. Go to **Settings** → **Providers** → **xAI Grok OAuth (SuperGrok)**.
 2. Click **Connect** and complete the device-code login in any browser.
-3. Pick a Grok model (for example `grok-4.5`).
+3. Pick a Grok model (for example `grok-4.6` or `grok-4.5`).
 
 ```admonish note title="CLI login"
 Device-flow works headless (SSH / Docker) without publishing a callback port:
