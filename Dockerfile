@@ -74,6 +74,7 @@ RUN apt-get update -qq && \
         chromium \
         curl \
         gnupg \
+        jq \
         libgomp1 \
         sudo \
         tmux \

@@ -41,6 +41,7 @@ It builds the repo `Dockerfile` as `linux/amd64` and pushes:
   - and/or config `[auth] disabled = true` for single-user local
 - Ports: `13131` (UI), optionally `13132`, `1455`
 - Optional: mount Docker sock if you want container sandboxes
+- Runtime image includes `jq` (restricted-host PATH is `/usr/local/bin:/usr/bin:/bin`). Do not enable Docker sandbox just to get CLI tools — the default package list is huge.
 
 ## First login after deploy
 
