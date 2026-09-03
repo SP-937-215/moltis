@@ -25,10 +25,17 @@ docker version
 # Prefer linux/amd64 for typical TrueNAS SCALE hosts. Override with PLATFORM=.
 PLATFORM="${PLATFORM:-linux/amd64}"
 
+# Bake the upstream date version so the in-app update banner (releases.json
+# YYYYMMDD.NN compare) stays quiet. A `fork-<sha>` string is always treated
+# as older than any stable release. Override with MOLTIS_VERSION=.
+MOLTIS_VERSION="${MOLTIS_VERSION:-20260902.03}"
+
 docker build \
   --platform "${PLATFORM}" \
   -f Dockerfile \
-  --build-arg "MOLTIS_VERSION=fork-${SHA12}" \
+  --build-arg "MOLTIS_VERSION=${MOLTIS_VERSION}" \
+  --label "org.opencontainers.image.revision=${COMMIT_SHA}" \
+  --label "org.opencontainers.image.version=${MOLTIS_VERSION}" \
   -t "${IMAGE_REPO}:${TAG_SHA}" \
   -t "${IMAGE_REPO}:${TAG_BRANCH}" \
   -t "${IMAGE_REPO}:${TAG_FORK}" \
