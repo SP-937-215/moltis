@@ -49,6 +49,78 @@ fn document_absolute_path_from_media_ref(media_ref: &str) -> String {
         .to_string()
 }
 
+fn truncate_url(url: &str) -> String {
+    url.chars().take(80).collect()
+}
+
+fn mime_from_filename(filename: &str) -> String {
+    match filename
+        .rsplit('.')
+        .next()
+        .unwrap_or_default()
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "png" => "image/png".to_string(),
+        "jpg" | "jpeg" => "image/jpeg".to_string(),
+        "gif" => "image/gif".to_string(),
+        "webp" => "image/webp".to_string(),
+        "svg" => "image/svg+xml".to_string(),
+        _ => "image/jpeg".to_string(),
+    }
+}
+
+fn read_session_media_bytes(path: &std::path::Path) -> Option<Vec<u8>> {
+    let metadata = std::fs::symlink_metadata(path).ok()?;
+    if metadata.file_type().is_symlink() {
+        return None;
+    }
+    std::fs::read(path).ok()
+}
+
+fn load_session_media_image(url: &str) -> Option<ContentPart> {
+    if moltis_sessions::parse_session_media_api_url(url).is_none() {
+        return None;
+    }
+    let store =
+        moltis_sessions::store::SessionStore::new(moltis_config::data_dir().join("sessions"));
+    let Some(path) = store.media_path_for_api_url(url) else {
+        tracing::warn!(url_prefix = %truncate_url(url), "session media image URL did not resolve");
+        return None;
+    };
+    let Some(bytes) = read_session_media_bytes(&path) else {
+        tracing::warn!(path = %path.display(), "failed to read session media image");
+        return None;
+    };
+    let filename = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("image");
+    let (data, media_type) = match moltis_media::image_ops::optimize_for_llm(&bytes, None) {
+        Ok(image) => (image.data, image.media_type),
+        Err(_) => (bytes, mime_from_filename(filename)),
+    };
+    Some(ContentPart::Image {
+        media_type,
+        data: base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &data),
+    })
+}
+
+/// Convert an OpenAI-style `image_url` into a provider image part.
+///
+/// Data URIs are parsed in place. Session media URLs are read from disk and
+/// converted to base64 so providers never have to fetch the Moltis origin.
+#[must_use]
+pub fn image_url_to_content_part(url: &str) -> Option<ContentPart> {
+    if let Some((media_type, data)) = parse_data_uri(url) {
+        return Some(ContentPart::Image {
+            media_type: media_type.to_string(),
+            data: data.to_string(),
+        });
+    }
+    load_session_media_image(url)
+}
+
 /// Convert persisted JSON messages (from session store) to typed `ChatMessage`s.
 ///
 /// Skips messages that don't have a valid `role` field, logging a warning.
@@ -173,11 +245,7 @@ fn values_to_chat_messages_inner(
                                 },
                                 "image_url" => {
                                     let url = block["image_url"]["url"].as_str()?;
-                                    let (media_type, data) = parse_data_uri(url)?;
-                                    Some(ContentPart::Image {
-                                        media_type: media_type.to_string(),
-                                        data: data.to_string(),
-                                    })
+                                    image_url_to_content_part(url)
                                 },
                                 _ => None,
                             }
@@ -335,4 +403,97 @@ fn attach_reasoning_to_assistant_tool_call(
         tool_call_id,
         "no assistant message found for reasoning attachment"
     );
+}
+
+#[cfg(test)]
+mod image_url_tests {
+    use super::*;
+    use moltis_sessions::store::SessionStore;
+
+    static DATA_DIR_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    struct DataDirGuard;
+    impl Drop for DataDirGuard {
+        fn drop(&mut self) {
+            moltis_config::clear_data_dir();
+        }
+    }
+
+    const TINY_PNG: &[u8] = &[
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44,
+        0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1F,
+        0x15, 0xC4, 0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00,
+        0x01, 0x00, 0x00, 0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+        0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+    ];
+
+    #[test]
+    fn image_url_to_content_part_parses_data_uri() {
+        let part = image_url_to_content_part("data:image/png;base64,abc123").unwrap();
+        match part {
+            ContentPart::Image { media_type, data } => {
+                assert_eq!(media_type, "image/png");
+                assert_eq!(data, "abc123");
+            },
+            ContentPart::Text(_) => panic!("expected image part"),
+        }
+    }
+
+    #[tokio::test]
+    async fn image_url_to_content_part_loads_session_media() {
+        let _lock = DATA_DIR_LOCK.lock().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        moltis_config::set_data_dir(dir.path().to_path_buf());
+        let _guard = DataDirGuard;
+        let store = SessionStore::new(dir.path().join("sessions"));
+        store
+            .save_media("main", "photo.png", TINY_PNG)
+            .await
+            .unwrap();
+
+        let part = image_url_to_content_part("/api/sessions/main/media/photo.png").unwrap();
+        match part {
+            ContentPart::Image { media_type, data } => {
+                assert!(media_type.starts_with("image/"));
+                assert!(!data.is_empty());
+                assert!(!data.starts_with("data:"));
+            },
+            ContentPart::Text(_) => panic!("expected image part"),
+        }
+    }
+
+    #[tokio::test]
+    async fn values_to_chat_messages_expand_session_media_urls() {
+        let _lock = DATA_DIR_LOCK.lock().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        moltis_config::set_data_dir(dir.path().to_path_buf());
+        let _guard = DataDirGuard;
+        let store = SessionStore::new(dir.path().join("sessions"));
+        store
+            .save_media("main", "photo.png", TINY_PNG)
+            .await
+            .unwrap();
+
+        let values = vec![serde_json::json!({
+            "role": "user",
+            "content": [
+                { "type": "text", "text": "what is this" },
+                {
+                    "type": "image_url",
+                    "image_url": { "url": "/api/sessions/main/media/photo.png" }
+                }
+            ]
+        })];
+        let msgs = values_to_chat_messages(&values);
+        match &msgs[0] {
+            ChatMessage::User {
+                content: UserContent::Multimodal(parts),
+                ..
+            } => {
+                assert!(matches!(&parts[0], ContentPart::Text(text) if text == "what is this"));
+                assert!(matches!(&parts[1], ContentPart::Image { .. }));
+            },
+            _ => panic!("expected multimodal user message"),
+        }
+    }
 }

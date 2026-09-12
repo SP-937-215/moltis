@@ -18,7 +18,7 @@ pub use {
     error::{Error, Result},
     key::SessionKey,
     message::{ContentBlock, MessageContent, PersistedMessage, UserDocument},
-    store::SearchResult,
+    store::{SearchResult, parse_session_media_api_url},
 };
 
 /// Run database migrations for the sessions crate.

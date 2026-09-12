@@ -6,7 +6,7 @@ import { renderMarkdown, sendRpc, warmAudioPlayback } from "../../helpers";
 import {
 	getPendingAttachments,
 	hasPendingAttachments,
-	type PendingAttachment,
+	isImageAttachment,
 	removePendingAttachments,
 	type UploadedDocumentFile,
 	uploadDocumentAttachment,
@@ -38,10 +38,6 @@ export interface ChatSendParams {
 }
 
 export type ChatContentPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
-
-interface PendingImageAttachment extends PendingAttachment {
-	dataUrl: string;
-}
 
 export interface ChatSendPayload {
 	runId?: string;
@@ -161,6 +157,40 @@ export function handleChatSendRpcResponse(
 	}
 }
 
+function sessionMediaUrl(sessionKey: string, file: UploadedDocumentFile): string {
+	return (
+		file.url || `/api/sessions/${encodeURIComponent(sessionKey)}/media/${encodeURIComponent(file.stored_filename)}`
+	);
+}
+
+function partitionUploadedAttachments(
+	attachments: ReturnType<typeof getPendingAttachments>,
+	uploaded: UploadedDocumentFile[],
+	sessionKey: string,
+	text: string,
+): {
+	content: ChatContentPart[];
+	previewImages: { dataUrl: string; name: string }[];
+	uploadedDocuments: UploadedDocumentFile[];
+} {
+	const uploadedDocuments: UploadedDocumentFile[] = [];
+	const previewImages: { dataUrl: string; name: string }[] = [];
+	const content: ChatContentPart[] = [];
+	if (text) content.push({ type: "text", text });
+	for (const [index, attachment] of attachments.entries()) {
+		const uploadedFile = uploaded[index];
+		if (!uploadedFile) continue;
+		const mediaUrl = sessionMediaUrl(sessionKey, uploadedFile);
+		if (isImageAttachment(attachment)) {
+			content.push({ type: "image_url", image_url: { url: mediaUrl } });
+			previewImages.push({ dataUrl: mediaUrl, name: attachment.name });
+		} else {
+			uploadedDocuments.push(uploadedFile);
+		}
+	}
+	return { content, previewImages, uploadedDocuments };
+}
+
 export async function buildChatMessage(
 	text: string,
 	seq: number,
@@ -169,20 +199,21 @@ export async function buildChatMessage(
 ): Promise<{ params: ChatSendParams; el: HTMLElement | null }> {
 	const userText = displayText === undefined ? text : displayText;
 	const attachments = hasPendingAttachments() ? [...getPendingAttachments()] : [];
-	const images = attachments.filter((attachment): attachment is PendingImageAttachment => Boolean(attachment.dataUrl));
-	const documents = attachments.filter((attachment) => !attachment.dataUrl);
 	if (attachments.length > 0) {
-		const uploadedDocuments = await Promise.all(
-			documents.map((attachment) => uploadDocumentAttachment(attachment, sessionKey)),
+		const uploaded = await Promise.all(
+			attachments.map((attachment) => uploadDocumentAttachment(attachment, sessionKey)),
 		);
-		const content: ChatContentPart[] = [];
-		if (text) content.push({ type: "text", text });
-		for (const img of images) if (img.dataUrl) content.push({ type: "image_url", image_url: { url: img.dataUrl } });
+		const { content, previewImages, uploadedDocuments } = partitionUploadedAttachments(
+			attachments,
+			uploaded,
+			sessionKey,
+			text,
+		);
 		const params: ChatSendParams = content.length > 0 ? { content, _seq: seq } : { text, _seq: seq };
 		if (uploadedDocuments.length > 0) params._document_files = uploadedDocuments;
 		const el =
 			forActiveSession(sessionKey, () =>
-				chatAddMsgWithAttachments("user", userText ? renderMarkdown(userText) : "", images, uploadedDocuments),
+				chatAddMsgWithAttachments("user", userText ? renderMarkdown(userText) : "", previewImages, uploadedDocuments),
 			) ?? null;
 		removePendingAttachments(attachments);
 		return { params, el };

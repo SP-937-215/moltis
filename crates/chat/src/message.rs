@@ -7,7 +7,7 @@ use {
 
 use {
     moltis_agents::{
-        ContentPart, UserContent, multimodal::parse_data_uri, prompt::VOICE_REPLY_SUFFIX,
+        ContentPart, UserContent, model::image_url_to_content_part, prompt::VOICE_REPLY_SUFFIX,
     },
     moltis_sessions::{ContentBlock, MessageContent, UserDocument, store::SessionStore},
 };
@@ -20,7 +20,7 @@ use crate::types::{
 /// Convert session-crate `MessageContent` to agents-crate `UserContent`.
 ///
 /// The two types have different image representations:
-/// - `ContentBlock::ImageUrl` stores a data URI string
+/// - `ContentBlock::ImageUrl` stores a data URI or session media URL
 /// - `ContentPart::Image` stores separated `media_type` + `data` fields
 pub(crate) fn format_user_documents_context(documents: &[UserDocument]) -> Option<String> {
     if documents.is_empty() {
@@ -72,25 +72,23 @@ pub(crate) fn to_user_content(mc: &MessageContent, documents: &[UserDocument]) -
                 .iter()
                 .filter_map(|block| match block {
                     ContentBlock::Text { text } => Some(ContentPart::Text(text.clone())),
-                    ContentBlock::ImageUrl { image_url } => match parse_data_uri(&image_url.url) {
-                        Some((media_type, data)) => {
-                            debug!(
-                                media_type,
-                                data_len = data.len(),
-                                "to_user_content: parsed image from data URI"
-                            );
-                            Some(ContentPart::Image {
-                                media_type: media_type.to_string(),
-                                data: data.to_string(),
-                            })
-                        },
-                        None => {
-                            warn!(
-                                url_prefix = truncate_at_char_boundary(&image_url.url, 80),
-                                "to_user_content: failed to parse data URI, dropping image"
-                            );
-                            None
-                        },
+                    ContentBlock::ImageUrl { image_url } => {
+                        match image_url_to_content_part(&image_url.url) {
+                            Some(part) => {
+                                debug!(
+                                    url_prefix = truncate_at_char_boundary(&image_url.url, 80),
+                                    "to_user_content: resolved image for LLM"
+                                );
+                                Some(part)
+                            },
+                            None => {
+                                warn!(
+                                    url_prefix = truncate_at_char_boundary(&image_url.url, 80),
+                                    "to_user_content: failed to resolve image, dropping it"
+                                );
+                                None
+                            },
+                        }
                     },
                 })
                 .collect();
@@ -396,5 +394,20 @@ mod tests {
         });
 
         assert!(user_documents_from_params(&params, "channel:whatsapp:test", &store).is_none());
+    }
+
+    #[test]
+    fn to_user_content_keeps_legacy_data_uri_images() {
+        let content = MessageContent::Multimodal(vec![ContentBlock::image_base64("image/png", "abc123")]);
+        match to_user_content(&content, &[]) {
+            UserContent::Multimodal(parts) => match &parts[0] {
+                ContentPart::Image { media_type, data } => {
+                    assert_eq!(media_type, "image/png");
+                    assert_eq!(data, "abc123");
+                },
+                ContentPart::Text(_) => panic!("expected image part"),
+            },
+            UserContent::Text(_) => panic!("expected multimodal content"),
+        }
     }
 }

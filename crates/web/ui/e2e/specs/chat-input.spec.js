@@ -857,6 +857,77 @@ test.describe("Chat input and slash commands", () => {
 		expect(pageErrors).toEqual([]);
 	});
 
+	test("uploads images over HTTP instead of inlining them on the websocket", async ({ page }) => {
+		const pageErrors = watchPageErrors(page);
+		const png = Buffer.from(
+			"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+			"base64",
+		);
+		await page.route("**/api/sessions/main/upload", async (route) => {
+			const request = route.request();
+			const body = request.postDataBuffer() || Buffer.alloc(0);
+			expect(request.headers()["content-type"]).toMatch(/^image\/png/);
+			expect(body.length).toBe(png.length);
+			await route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify({
+					ok: true,
+					url: "/api/sessions/main/media/photo.png",
+					filename: "photo.png",
+					contentType: "image/png",
+					size: body.length,
+				}),
+			});
+		});
+		await page.evaluate(() => {
+			window.__imageAttachmentPayloads = [];
+			if (window.__imageAttachmentWsSpyInstalled) return;
+			var originalSend = WebSocket.prototype.send;
+			WebSocket.prototype.send = function (data) {
+				try {
+					var parsed = JSON.parse(data);
+					if (parsed?.method === "chat.send") {
+						window.__imageAttachmentPayloads.push(parsed.params || {});
+					}
+				} catch {
+					// ignore non-JSON payloads
+				}
+				return originalSend.call(this, data);
+			};
+			window.__imageAttachmentWsSpyInstalled = true;
+		});
+
+		await page.locator("#attachInput").setInputFiles({
+			name: "photo.png",
+			mimeType: "image/png",
+			buffer: png,
+		});
+		await expect(page.locator(".media-preview-item")).toContainText("photo.png");
+		await page.locator("#chatInput").fill("what is this");
+		await page.locator("#chatInput").press("Enter");
+
+		await expect
+			.poll(
+				async () =>
+					await page.evaluate(() => {
+						var payloads = window.__imageAttachmentPayloads || [];
+						return payloads[payloads.length - 1] || null;
+					}),
+				{ timeout: 5_000 },
+			)
+			.toMatchObject({
+				content: [
+					{ type: "text", text: "what is this" },
+					{ type: "image_url", image_url: { url: "/api/sessions/main/media/photo.png" } },
+				],
+			});
+		const payload = await page.evaluate(() => window.__imageAttachmentPayloads.at(-1));
+		expect(JSON.stringify(payload)).not.toContain("data:image");
+		expect(payload._document_files).toBeUndefined();
+		expect(pageErrors).toEqual([]);
+	});
+
 	test("delayed attachment upload does not render in a newly active session", async ({ page }) => {
 		const pageErrors = watchPageErrors(page);
 		let releaseUpload;

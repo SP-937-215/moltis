@@ -37,23 +37,21 @@ let boundAttachChange: ((e: Event) => void) | null = null;
 let dragEnterCount = 0;
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
-const MAX_INLINE_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 
-function isImageFile(file: File): boolean {
-	return file.type.split("/", 1)[0] === "image" && file.size <= MAX_INLINE_IMAGE_SIZE;
+export function isImageAttachment(attachment: PendingAttachment): boolean {
+	return attachment.mimeType.split("/", 1)[0] === "image";
 }
 
-function readFileAsDataUrl(file: File): Promise<string> {
-	return new Promise((resolve, reject) => {
-		const reader = new FileReader();
-		reader.onload = (): void => {
-			resolve(reader.result as string);
-		};
-		reader.onerror = (): void => {
-			reject(reader.error);
-		};
-		reader.readAsDataURL(file);
-	});
+function isImageFile(file: File): boolean {
+	return file.type.split("/", 1)[0] === "image";
+}
+
+function revokePreviewUrl(url: string | undefined): void {
+	if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+}
+
+function revokePendingPreviewUrls(): void {
+	for (const attachment of pendingAttachments) revokePreviewUrl(attachment.dataUrl);
 }
 
 function addAttachment(file: File, dataUrl?: string): void {
@@ -68,7 +66,8 @@ function addAttachment(file: File, dataUrl?: string): void {
 }
 
 function removeAttachment(index: number): void {
-	pendingAttachments.splice(index, 1);
+	const [removed] = pendingAttachments.splice(index, 1);
+	revokePreviewUrl(removed?.dataUrl);
 	renderPreview();
 }
 
@@ -127,12 +126,12 @@ function renderPreview(): void {
 	}
 }
 
-async function handleFiles(files: FileList | File[]): Promise<void> {
+function handleFiles(files: FileList | File[]): void {
 	for (const file of files) {
 		if (file.size > MAX_FILE_SIZE) continue;
 		try {
-			const dataUrl = isImageFile(file) ? await readFileAsDataUrl(file) : undefined;
-			addAttachment(file, dataUrl);
+			const previewUrl = isImageFile(file) ? URL.createObjectURL(file) : undefined;
+			addAttachment(file, previewUrl);
 		} catch (err) {
 			console.warn("[media-drop] Failed to read file:", err);
 		}
@@ -248,6 +247,7 @@ export function teardownMediaDrop(): void {
 	if (previewStrip?.parentElement) {
 		previewStrip.parentElement.removeChild(previewStrip);
 	}
+	revokePendingPreviewUrls();
 	pendingAttachments = [];
 	previewStrip = null;
 	chatMsgBoxRef = null;
@@ -268,7 +268,11 @@ export function getPendingAttachments(): PendingAttachment[] {
 /** Remove attachments consumed by a send without discarding newer selections. */
 export function removePendingAttachments(attachments: readonly PendingAttachment[]): void {
 	const consumed = new Set(attachments);
-	pendingAttachments = pendingAttachments.filter((attachment) => !consumed.has(attachment));
+	pendingAttachments = pendingAttachments.filter((attachment) => {
+		if (!consumed.has(attachment)) return true;
+		revokePreviewUrl(attachment.dataUrl);
+		return false;
+	});
 	renderPreview();
 }
 

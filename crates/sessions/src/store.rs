@@ -73,6 +73,12 @@ impl SessionStore {
         storage_layout::media_reference(key, filename)
     }
 
+    /// Absolute path for a media API URL such as `/api/sessions/{key}/media/{file}`.
+    pub fn media_path_for_api_url(&self, url: &str) -> Option<PathBuf> {
+        let (key, filename) = parse_session_media_api_url(url)?;
+        self.media_path_for(&key, &filename).ok()
+    }
+
     async fn ensure_migrated(&self, key: &str) -> Result<()> {
         let base_dir = self.base_dir.clone();
         let key = key.to_string();
@@ -569,6 +575,37 @@ fn collect_stored_sessions(
     }
 }
 
+/// Parse `/api/sessions/{session_key}/media/{filename}` into key + filename.
+///
+/// Accepts absolute paths, origin-prefixed URLs, and query/fragment suffixes.
+/// Rejects path traversal in the filename.
+#[must_use]
+pub fn parse_session_media_api_url(url: &str) -> Option<(String, String)> {
+    let mut path = url.trim();
+    if path.is_empty() {
+        return None;
+    }
+    if let Some(idx) = path.find('?') {
+        path = &path[..idx];
+    }
+    if let Some(idx) = path.find('#') {
+        path = &path[..idx];
+    }
+    if let Some(idx) = path.find("://") {
+        let rest = &path[idx + 3..];
+        path = rest.find('/').map(|slash| &rest[slash..])?;
+    }
+    let remainder = path.strip_prefix("/api/sessions/")?;
+    let (encoded_key, encoded_filename) = remainder.split_once("/media/")?;
+    if encoded_key.is_empty() || encoded_filename.is_empty() || encoded_filename.contains('/') {
+        return None;
+    }
+    let key = urlencoding::decode(encoded_key).ok()?.into_owned();
+    let filename = urlencoding::decode(encoded_filename).ok()?.into_owned();
+    storage_layout::validate_media_filename(&filename).ok()?;
+    Some((key, filename))
+}
+
 fn write_media_file(path: &std::path::Path, data: &[u8]) -> Result<()> {
     let mut options = OpenOptions::new();
     options.create(true).write(true).truncate(true);
@@ -847,6 +884,23 @@ mod tests {
                 .join(SessionStore::key_to_filename("session:abc-123"))
                 .join("history.jsonl")
         );
+    }
+
+    #[test]
+    fn parse_session_media_api_url_accepts_encoded_session_keys() {
+        let (key, filename) = parse_session_media_api_url(
+            "https://moltis-q.home.arpa/api/sessions/session%3Aabc/media/photo.png?download=1",
+        )
+        .unwrap();
+        assert_eq!(key, "session:abc");
+        assert_eq!(filename, "photo.png");
+    }
+
+    #[test]
+    fn parse_session_media_api_url_rejects_path_traversal() {
+        assert!(parse_session_media_api_url("/api/sessions/main/media/../secret.png").is_none());
+        assert!(parse_session_media_api_url("/api/sessions/main/media/").is_none());
+        assert!(parse_session_media_api_url("/api/files/photo.png").is_none());
     }
 
     #[tokio::test]

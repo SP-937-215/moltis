@@ -15,8 +15,8 @@ pub use chat::{ChatMessage, ContentPart, UserContent};
 
 mod convert;
 pub use convert::{
-    extract_tool_call_metadata, provider_values_to_chat_messages, values_to_chat_messages,
-    values_to_chat_messages_with_tool_result_limit,
+    extract_tool_call_metadata, image_url_to_content_part, provider_values_to_chat_messages,
+    values_to_chat_messages, values_to_chat_messages_with_tool_result_limit,
 };
 
 mod stream;
