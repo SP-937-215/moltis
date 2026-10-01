@@ -3,7 +3,9 @@
 use reqwest::header::{HeaderMap, HeaderValue};
 
 /// Default Grok CLI client version accepted by `cli-chat-proxy.grok.com`.
-const DEFAULT_CLIENT_VERSION: &str = "0.2.101";
+/// The proxy rejects versions below 1.0.13 (HTTP 426), so pin to the current
+/// stable CLI. Override with `MOLTIS_XAI_CLIENT_VERSION` to track newer clients.
+const DEFAULT_CLIENT_VERSION: &str = "1.0.46";
 /// Session product label expected by the subscription proxy.
 const DEFAULT_CLIENT_NAME: &str = "grok-shell";
 
