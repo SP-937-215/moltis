@@ -28,7 +28,7 @@ PLATFORM="${PLATFORM:-linux/amd64}"
 # Bake the upstream date version so the in-app update banner (releases.json
 # YYYYMMDD.NN compare) stays quiet. A `fork-<sha>` string is always treated
 # as older than any stable release. Override with MOLTIS_VERSION=.
-MOLTIS_VERSION="${MOLTIS_VERSION:-20260902.03}"
+MOLTIS_VERSION="${MOLTIS_VERSION:-20260913.02}"
 
 docker build \
   --platform "${PLATFORM}" \

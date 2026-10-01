@@ -21,7 +21,7 @@ Root [`.woodpecker.yml`](../../.woodpecker.yml) runs on:
 - manual runs
 
 It builds the repo `Dockerfile` as `linux/amd64` with
-`MOLTIS_VERSION=20260902.03` (override via env) so the in-app update banner
+`MOLTIS_VERSION=20260913.02` (override via env) so the in-app update banner
 stays quiet, and pushes:
 
 | Tag | Meaning |
