@@ -27,8 +27,19 @@ pub(crate) fn format_user_documents_context(documents: &[UserDocument]) -> Optio
         return None;
     }
 
-    let mut sections = Vec::with_capacity(documents.len() + 1);
+    let mut sections = Vec::with_capacity(documents.len() + 2);
     sections.push("[Inbound documents available]".to_string());
+    sections.push(
+        "[Document filing] Before answering, file each document. Read local_path. \
+         Use markitdown or tesseract when the text is not already inline. \
+         Rename the 00-inbox copy to yyyymmdd-short_doc_name plus the original extension. \
+         Use a date stated in the document; if none is stated, use today's date in Asia/Hong_Kong. \
+         short_doc_name is a few lowercase words separated by underscores, taken from the content. \
+         Move that file from 00-inbox to Projects, Areas, Resources, or Archives. \
+         Leave it in 00-inbox only when the folder is genuinely unclear, and say so. \
+         Reply with the new path."
+            .to_string(),
+    );
     for document in documents {
         let size = document
             .size_bytes
@@ -375,6 +386,8 @@ mod tests {
             b"synthetic test document"
         );
         assert!(context.contains(&format!("local_path: {local_path}")));
+        assert!(context.contains("yyyymmdd-short_doc_name"));
+        assert!(context.contains("00-inbox"));
         assert_eq!(
             documents[0].media_ref,
             SessionStore::media_reference(session_key, filename).unwrap()

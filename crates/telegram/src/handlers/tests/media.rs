@@ -222,6 +222,31 @@ fn is_supported_document_type_checks() {
 }
 
 #[test]
+fn office_documents_are_downloaded_even_when_telegram_mislabels_them() {
+    assert!(is_downloadable_document(
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        Some("claim.docx"),
+    ));
+    assert!(is_downloadable_document(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        Some("budget.xlsx"),
+    ));
+    assert!(is_downloadable_document(
+        "application/vnd.ms-powerpoint",
+        Some("talk.ppt"),
+    ));
+    assert!(is_downloadable_document(
+        "application/octet-stream",
+        Some("scan.DOCX"),
+    ));
+    assert!(!is_downloadable_document(
+        "application/octet-stream",
+        Some("payload.exe"),
+    ));
+    assert!(!is_downloadable_document("application/octet-stream", None));
+}
+
+#[test]
 fn extract_text_document_content_utf8_boundary() {
     // 3-byte UTF-8 char: € = [0xE2, 0x82, 0xAC]
     let mut data = vec![b'A'; MAX_INLINE_DOCUMENT_BYTES - 1];

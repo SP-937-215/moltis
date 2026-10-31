@@ -332,7 +332,10 @@ pub async fn handle_message_direct(
             &document_file.media_type,
         );
 
-        if !is_supported_document_type(&document_file.media_type) {
+        if !is_downloadable_document(
+            &document_file.media_type,
+            document_file.file_name.as_deref(),
+        ) {
             debug!(
                 account_id,
                 media_type = %document_file.media_type,

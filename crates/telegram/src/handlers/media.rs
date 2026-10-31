@@ -287,6 +287,60 @@ pub(super) fn is_supported_document_type(media_type: &str) -> bool {
         || is_pdf_document_type(media_type)
 }
 
+pub(super) fn is_office_document_type(media_type: &str) -> bool {
+    media_type.starts_with("application/vnd.openxmlformats-officedocument.")
+        || media_type.starts_with("application/vnd.oasis.opendocument.")
+        || matches!(
+            media_type,
+            "application/msword"
+                | "application/vnd.ms-excel"
+                | "application/vnd.ms-powerpoint"
+                | "application/rtf"
+                | "text/rtf"
+        )
+}
+
+pub(super) fn is_document_filename(name: &str) -> bool {
+    let ext = name
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    matches!(
+        ext.as_str(),
+        "pdf"
+            | "txt"
+            | "md"
+            | "csv"
+            | "json"
+            | "png"
+            | "jpg"
+            | "jpeg"
+            | "webp"
+            | "gif"
+            | "tif"
+            | "tiff"
+            | "heic"
+            | "doc"
+            | "docx"
+            | "xls"
+            | "xlsx"
+            | "ppt"
+            | "pptx"
+            | "odt"
+            | "ods"
+            | "rtf"
+    )
+}
+
+/// Download a Telegram document when its MIME type is known, or when Telegram
+/// sent `application/octet-stream` but the filename has a document extension.
+pub(super) fn is_downloadable_document(media_type: &str, file_name: Option<&str>) -> bool {
+    is_supported_document_type(media_type)
+        || is_office_document_type(media_type)
+        || file_name.is_some_and(is_document_filename)
+}
+
 pub(super) fn truncate_inline_document_text(text: &str) -> Option<String> {
     let trimmed = text.trim();
     if trimmed.is_empty() {
