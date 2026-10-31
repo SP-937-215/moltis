@@ -37,6 +37,10 @@ pub(crate) fn format_user_documents_context(documents: &[UserDocument]) -> Optio
          short_doc_name is a few lowercase words separated by underscores, taken from the content. \
          Move that file from 00-inbox to Projects, Areas, Resources, or Archives. \
          Leave it in 00-inbox only when the folder is genuinely unclear, and say so. \
+         After the file is in its final folder, call memory_save once. \
+         Set file to memory/<same-stem>.md and append to false. \
+         The note is the document date, the new path, a short summary, and a few keywords. \
+         Do not write MEMORY.md. Do not copy the full document text. \
          Reply with the new path."
             .to_string(),
     );
@@ -388,6 +392,9 @@ mod tests {
         assert!(context.contains(&format!("local_path: {local_path}")));
         assert!(context.contains("yyyymmdd-short_doc_name"));
         assert!(context.contains("00-inbox"));
+        assert!(context.contains("memory_save"));
+        assert!(context.contains("append"));
+        assert!(context.contains("Do not write MEMORY.md"));
         assert_eq!(
             documents[0].media_ref,
             SessionStore::media_reference(session_key, filename).unwrap()
