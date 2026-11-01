@@ -488,6 +488,7 @@ async fn telegram_streaming_delivers_progress_and_final_streams_without_notify()
             message_log: None,
             event_sink: None,
             otp: Mutex::new(OtpState::new(300)),
+            pending_documents: Mutex::new(crate::pending_documents::PendingDocuments::default()),
         });
     }
 
@@ -621,6 +622,7 @@ async fn run_stream_lifecycle_with_edit_failure(
             message_log: None,
             event_sink: None,
             otp: Mutex::new(OtpState::new(300)),
+            pending_documents: Mutex::new(crate::pending_documents::PendingDocuments::default()),
         });
     }
 
@@ -944,6 +946,7 @@ async fn send_html_fallback_sends_plain_text_without_raw_tags() {
             message_log: None,
             event_sink: None,
             otp: Mutex::new(OtpState::new(300)),
+            pending_documents: Mutex::new(crate::pending_documents::PendingDocuments::default()),
         });
     }
 
@@ -1046,6 +1049,7 @@ async fn send_document_to_topic_chat_does_not_panic() {
             message_log: None,
             event_sink: None,
             otp: Mutex::new(OtpState::new(300)),
+            pending_documents: Mutex::new(crate::pending_documents::PendingDocuments::default()),
         });
     }
 

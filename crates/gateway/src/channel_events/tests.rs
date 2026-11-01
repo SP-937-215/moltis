@@ -356,6 +356,20 @@ fn each_axis_is_lifted_on_its_own() {
 }
 
 #[test]
+fn operator_group_turn_gets_file_tools_without_a_shell() {
+    let mut params = serde_json::json!({ "_private_context": true });
+
+    apply_operator_group_file_tools(&mut params);
+
+    assert!(params.get("_tool_audience").is_none());
+    assert_eq!(
+        params["_tool_policy"]["deny"],
+        serde_json::json!(["exec", "process", "sandbox_packages"])
+    );
+    assert_eq!(params["_private_context"], false);
+}
+
+#[test]
 fn public_audience_tools_require_explicit_registration() {
     const REGISTRATION: &str = include_str!("../server/prepare_core/post_state.rs");
 

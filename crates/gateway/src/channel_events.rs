@@ -204,6 +204,19 @@ fn apply_untrusted_channel_context_with(
     params["_private_context"] = serde_json::json!(false);
 }
 
+/// File and conversion tools for an operator in a group, without a shell.
+///
+/// The audience stays trusted so Read and MCP converters are visible. `exec`
+/// and `process` are denied. Private owner context stays out of the room.
+pub(in crate::channel_events) fn apply_operator_group_file_tools(
+    params: &mut serde_json::Value,
+) {
+    params["_tool_policy"] = serde_json::json!({
+        "deny": ["exec", "process", "sandbox_packages"]
+    });
+    params["_private_context"] = serde_json::json!(false);
+}
+
 /// Unknown chat kinds are treated as shared. Only channel types that can prove
 /// a one-to-one conversation may expose private prompt context.
 fn is_shared_channel_target(reply_to: &ChannelReplyTarget) -> bool {

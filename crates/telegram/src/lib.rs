@@ -11,6 +11,7 @@ pub mod handlers;
 pub mod markdown;
 pub mod otp;
 pub mod outbound;
+pub mod pending_documents;
 pub mod plugin;
 pub mod state;
 pub(crate) mod topic;

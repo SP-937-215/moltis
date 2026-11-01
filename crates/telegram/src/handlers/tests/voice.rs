@@ -51,6 +51,7 @@ async fn voice_not_configured_replies_with_setup_hint_and_skips_dispatch() {
             message_log: None,
             event_sink: Some(Arc::clone(&sink) as Arc<dyn ChannelEventSink>),
             otp: Mutex::new(OtpState::new(300)),
+            pending_documents: Mutex::new(crate::pending_documents::PendingDocuments::default()),
         });
     }
 
@@ -264,6 +265,7 @@ async fn run_voice_scenario(
                 None
             },
             otp: Mutex::new(OtpState::new(300)),
+            pending_documents: Mutex::new(crate::pending_documents::PendingDocuments::default()),
         });
     }
 

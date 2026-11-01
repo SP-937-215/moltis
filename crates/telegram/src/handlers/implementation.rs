@@ -236,6 +236,25 @@ pub async fn handle_message_direct(
             .await;
         }
 
+        if crate::pending_documents::should_hold_unmentioned_document(
+            &reason,
+            moltis_channels::operators::is_listed(&peer_id, &config.operators),
+            extract_document_file(&msg).is_some_and(|document| {
+                is_downloadable_document(
+                    &document.media_type,
+                    document.file_name.as_deref(),
+                )
+            }),
+        ) {
+            hold_unmentioned_operator_document(
+                accounts,
+                account_id,
+                &msg,
+                event_sink.as_ref(),
+            )
+            .await;
+        }
+
         return Ok(());
     }
 
@@ -766,6 +785,24 @@ pub async fn handle_message_direct(
             None
         };
 
+        let (body, documents) = {
+            let held = {
+                let accts = accounts.read().unwrap_or_else(|e| e.into_inner());
+                accts.get(account_id).map(|state| {
+                    state
+                        .pending_documents
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .take(&msg.chat.id.0.to_string())
+                })
+            };
+            crate::pending_documents::merge_held_documents(
+                &body,
+                documents,
+                held.unwrap_or_default(),
+            )
+        };
+
         let meta = ChannelMessageMeta {
             channel_type: ChannelType::Telegram,
             sender_name: sender_name.clone(),
@@ -798,6 +835,62 @@ pub async fn handle_message_direct(
 
 fn should_intercept_slash_command(cmd: &str, cmd_text: &str) -> bool {
     moltis_channels::commands::is_channel_command(cmd, cmd_text)
+}
+
+async fn hold_unmentioned_operator_document(
+    accounts: &AccountStateMap,
+    account_id: &str,
+    msg: &Message,
+    event_sink: Option<&Arc<dyn moltis_channels::ChannelEventSink>>,
+) {
+    let Some(document_file) = extract_document_file(msg) else {
+        return;
+    };
+    let bot = {
+        let accts = accounts.read().unwrap_or_else(|error| error.into_inner());
+        accts.get(account_id).map(|state| state.bot.clone())
+    };
+    let Some(bot) = bot else {
+        return;
+    };
+    let data = match download_telegram_file(&bot, &document_file.file_id).await {
+        Ok(data) => data,
+        Err(error) => {
+            warn!(account_id, %error, "failed to hold unmentioned document");
+            return;
+        },
+    };
+    let reply_to = reply_target_for_msg(account_id, msg);
+    let Some(saved) = save_inbound_document(
+        event_sink,
+        &reply_to,
+        document_file.file_name.as_deref(),
+        &document_file.media_type,
+        &document_file.file_id,
+        &data,
+    )
+    .await
+    else {
+        warn!(account_id, "unmentioned document was downloaded but not saved");
+        return;
+    };
+    let held = crate::pending_documents::HeldDocument {
+        file: channel_document_file(
+            &saved,
+            document_file.file_name.as_deref(),
+            &document_file.media_type,
+        ),
+    };
+    let chat_id = msg.chat.id.0.to_string();
+    let accts = accounts.read().unwrap_or_else(|error| error.into_inner());
+    if let Some(state) = accts.get(account_id) {
+        state
+            .pending_documents
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .hold(&chat_id, held);
+        info!(account_id, chat_id, "held operator document until the next mention");
+    }
 }
 
 /// Handle an edited message — only processes live location updates.

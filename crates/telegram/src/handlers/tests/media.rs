@@ -351,6 +351,7 @@ async fn document_html_is_inlined_into_chat_body() {
             message_log: None,
             event_sink: Some(Arc::clone(&sink) as Arc<dyn ChannelEventSink>),
             otp: Mutex::new(OtpState::new(300)),
+            pending_documents: Mutex::new(crate::pending_documents::PendingDocuments::default()),
         });
     }
 
@@ -508,6 +509,7 @@ async fn document_pdf_is_inlined_into_chat_body() {
             message_log: None,
             event_sink: Some(Arc::clone(&sink) as Arc<dyn ChannelEventSink>),
             otp: Mutex::new(OtpState::new(300)),
+            pending_documents: Mutex::new(crate::pending_documents::PendingDocuments::default()),
         });
     }
 
@@ -639,6 +641,7 @@ async fn document_image_is_dispatched_as_attachment() {
             message_log: None,
             event_sink: Some(Arc::clone(&sink) as Arc<dyn ChannelEventSink>),
             otp: Mutex::new(OtpState::new(300)),
+            pending_documents: Mutex::new(crate::pending_documents::PendingDocuments::default()),
         });
     }
 

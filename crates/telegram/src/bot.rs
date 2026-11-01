@@ -83,6 +83,9 @@ pub async fn start_polling(
         message_log,
         event_sink,
         otp: std::sync::Mutex::new(crate::otp::OtpState::new(otp_cooldown)),
+        pending_documents: std::sync::Mutex::new(
+            crate::pending_documents::PendingDocuments::default(),
+        ),
     };
 
     {

@@ -343,6 +343,9 @@ mod tests {
             message_log: None,
             event_sink: None,
             otp: std::sync::Mutex::new(OtpState::new(300)),
+            pending_documents: std::sync::Mutex::new(
+                crate::pending_documents::PendingDocuments::default(),
+            ),
         }
     }
 

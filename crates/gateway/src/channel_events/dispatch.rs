@@ -199,7 +199,15 @@ pub(in crate::channel_events) async fn dispatch_to_chat(
         // `/sh`. That made the ceiling depend on a rejection 60 lines away, so
         // narrowing that guard would have silently opened this one.
         if !trusted_channel_turn {
-            apply_untrusted_channel_context_with(&mut params, untrusted_audience, untrusted_tools);
+            if sender_role.is_operator() && is_shared_channel_target(&reply_to) {
+                apply_operator_group_file_tools(&mut params);
+            } else {
+                apply_untrusted_channel_context_with(
+                    &mut params,
+                    untrusted_audience,
+                    untrusted_tools,
+                );
+            }
         }
 
         // Carry this message's acknowledgment identity into the run so the
