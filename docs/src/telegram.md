@@ -75,6 +75,8 @@ offered = ["telegram"]
 | `mention_mode` | no | `"mention"` | When the bot responds in groups: `"always"`, `"mention"` (only when @mentioned), or `"none"` |
 | `allowlist` | no | `[]` | User IDs or usernames allowed to DM the bot (when `dm_policy = "allowlist"`) |
 | `group_allowlist` | no | `[]` | Group/chat IDs allowed to interact with the bot |
+| `untrusted_tools` | no | `"deny_all"` | Tool policy for group turns. `"policy"` keeps public tools such as web search; `"deny_all"` hides every tool |
+| `untrusted_audience` | no | `"public"` | Tool audience for group turns. Leave `"public"` so shell, file, and MCP tools stay hidden |
 | `model` | no | — | Override the default model for this channel |
 | `model_provider` | no | — | Provider for the overridden model |
 | `agent_id` | no | — | Default agent ID for this bot's sessions |
@@ -107,6 +109,7 @@ group_policy = "open"
 mention_mode = "mention"
 allowlist = ["123456789", "alice_username"]
 group_allowlist = ["-1001234567890"]
+untrusted_tools = "policy"
 reply_to_message = true
 model = "claude-sonnet-4-20250514"
 model_provider = "anthropic"

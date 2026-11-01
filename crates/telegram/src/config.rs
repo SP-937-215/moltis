@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use {
     moltis_channels::{
-        config_view::ChannelConfigView,
+        config_view::{ChannelConfigView, UntrustedAudience, UntrustedTools},
         gating::{DmPolicy, GroupPolicy, MentionMode},
     },
     moltis_common::secret_serde,
@@ -72,6 +72,17 @@ pub struct TelegramAccountConfig {
 
     /// Group/chat ID allowlist.
     pub group_allowlist: Vec<String>,
+
+    /// Tool audience ceiling outside an operator direct chat. Default `public`
+    /// keeps shell, file, and MCP tools hidden in groups.
+    #[serde(default)]
+    pub untrusted_audience: UntrustedAudience,
+
+    /// Name policy outside an operator direct chat. Default `deny_all` hides
+    /// even public tools such as web search. `policy` leaves the normal layers
+    /// in charge.
+    #[serde(default)]
+    pub untrusted_tools: UntrustedTools,
 
     /// How streaming responses are delivered.
     pub stream_mode: StreamMode,
@@ -143,7 +154,7 @@ pub struct RedactedConfig<'a>(pub &'a TelegramAccountConfig);
 impl Serialize for RedactedConfig<'_> {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let c = self.0;
-        let mut count = 15; // always-present fields
+        let mut count = 17; // always-present fields
         count += c.model.is_some() as usize;
         count += c.model_provider.is_some() as usize;
         count += c.agent_id.is_some() as usize;
@@ -157,6 +168,8 @@ impl Serialize for RedactedConfig<'_> {
         s.serialize_field("allowlist", &c.allowlist)?;
         s.serialize_field("operators", &c.operators)?;
         s.serialize_field("group_allowlist", &c.group_allowlist)?;
+        s.serialize_field("untrusted_audience", &c.untrusted_audience)?;
+        s.serialize_field("untrusted_tools", &c.untrusted_tools)?;
         s.serialize_field("stream_mode", &c.stream_mode)?;
         s.serialize_field("edit_throttle_ms", &c.edit_throttle_ms)?;
         s.serialize_field("stream_notify_on_complete", &c.stream_notify_on_complete)?;
@@ -195,6 +208,14 @@ impl ChannelConfigView for TelegramAccountConfig {
 
     fn group_allowlist(&self) -> &[String] {
         &self.group_allowlist
+    }
+
+    fn untrusted_audience(&self) -> UntrustedAudience {
+        self.untrusted_audience
+    }
+
+    fn untrusted_tools(&self) -> UntrustedTools {
+        self.untrusted_tools
     }
 
     fn dm_policy(&self) -> DmPolicy {
@@ -264,6 +285,8 @@ impl Default for TelegramAccountConfig {
             allowlist: Vec::new(),
             operators: Vec::new(),
             group_allowlist: Vec::new(),
+            untrusted_audience: UntrustedAudience::default(),
+            untrusted_tools: UntrustedTools::default(),
             stream_mode: StreamMode::default(),
             edit_throttle_ms: 2000,
             stream_notify_on_complete: false,
@@ -322,6 +345,19 @@ mod tests {
         assert_eq!(cfg.allowlist, vec!["user1", "user2"]);
         // defaults for unspecified fields
         assert_eq!(cfg.group_policy, GroupPolicy::Open);
+        assert_eq!(cfg.untrusted_tools(), UntrustedTools::DenyAll);
+    }
+
+    #[test]
+    fn group_turns_can_keep_public_search_tools() {
+        let cfg: TelegramAccountConfig = serde_json::from_value(serde_json::json!({
+            "token": "123:ABC",
+            "untrusted_tools": "policy",
+        }))
+        .unwrap();
+
+        assert_eq!(cfg.untrusted_audience(), UntrustedAudience::Public);
+        assert_eq!(cfg.untrusted_tools(), UntrustedTools::Policy);
     }
 
     #[test]
