@@ -356,7 +356,7 @@ fn each_axis_is_lifted_on_its_own() {
 }
 
 #[test]
-fn operator_group_turn_gets_file_tools_without_a_shell() {
+fn operator_group_turn_can_move_files_but_not_start_processes() {
     let mut params = serde_json::json!({ "_private_context": true });
 
     apply_operator_group_file_tools(&mut params);
@@ -364,7 +364,7 @@ fn operator_group_turn_gets_file_tools_without_a_shell() {
     assert!(params.get("_tool_audience").is_none());
     assert_eq!(
         params["_tool_policy"]["deny"],
-        serde_json::json!(["exec", "process", "sandbox_packages"])
+        serde_json::json!(["process", "sandbox_packages"])
     );
     assert_eq!(params["_private_context"], false);
 }
