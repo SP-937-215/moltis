@@ -30,13 +30,16 @@ pub(crate) fn format_user_documents_context(documents: &[UserDocument]) -> Optio
     let mut sections = Vec::with_capacity(documents.len() + 2);
     sections.push("[Inbound documents available]".to_string());
     sections.push(
-        "[Document filing] Before answering, file each document. Read local_path. \
+        "[Document filing] Before answering, file each document unless the sender said to leave it in the inbox, not to file it, or not to move it. Read local_path. \
          Use markitdown or tesseract when the text is not already inline. \
-         Rename the 00-inbox copy to yyyymmdd-short_doc_name plus the original extension. \
+         The inbox folder is 0.Inbox. Do not recreate an unnumbered inbox folder. \
+         Rename the 0.Inbox copy to yyyymmdd-short_doc_name plus the original extension. \
          Use a date stated in the document; if none is stated, use today's date in Asia/Hong_Kong. \
          short_doc_name is a few lowercase words separated by underscores, taken from the content. \
-         Move that file from 00-inbox to Projects, Areas, Resources, or Archives. \
-         Leave it in 00-inbox only when the folder is genuinely unclear, and say so. \
+         Put it in one subject subfolder of 1.Projects, 2.Areas, 3.Resources, or 4.Archives. Never leave it at the root of those folders. \
+         A CV, job application, or compensation note goes in 2.Areas/career, not a project. \
+         Reuse finance, admin, home, health, or career under 2.Areas, and food under 3.Resources, when one fits. \
+         Delete the 0.Inbox copy after the PARA copy exists. A host job does this if you do not. Do not recreate the inbox copy. \
          After the file is in its final folder, call memory_save once. \
          Set file to memory/<same-stem>.md and append to false. \
          The note is the document date, the new path, a short summary, and a few keywords. \
@@ -391,7 +394,10 @@ mod tests {
         );
         assert!(context.contains(&format!("local_path: {local_path}")));
         assert!(context.contains("yyyymmdd-short_doc_name"));
-        assert!(context.contains("00-inbox"));
+        assert!(context.contains("0.Inbox"));
+        assert!(context.contains("2.Areas/career"));
+        assert!(context.contains("Delete the 0.Inbox copy"));
+        assert!(!context.contains("00-inbox"));
         assert!(context.contains("memory_save"));
         assert!(context.contains("append"));
         assert!(context.contains("Do not write MEMORY.md"));
