@@ -229,6 +229,10 @@ pub struct BrowserRequest {
     /// - specific browser ("brave", "chrome", etc): use that browser
     #[serde(default)]
     pub browser: Option<BrowserPreference>,
+
+    /// Chat session that owns this turn. Set by the host, never by the model.
+    #[serde(default, skip_deserializing)]
+    pub chat_session_key: Option<String>,
 }
 
 fn default_timeout_ms() -> u64 {

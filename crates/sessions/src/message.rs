@@ -381,6 +381,30 @@ impl PersistedMessage {
         }
     }
 
+    /// A group message the bot heard but was not asked to answer.
+    ///
+    /// Stamped as a public run so a later group turn, which drops private
+    /// history, still sees it.
+    pub fn overheard(sender: &str, text: &str) -> Self {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static SEQ: AtomicU64 = AtomicU64::new(1);
+        let seq = SEQ.fetch_add(1, Ordering::Relaxed);
+        Self::User {
+            content: MessageContent::Text(format!(
+                "[Heard in the group, not a request. Do not reply to it.]\n{sender}: {text}"
+            )),
+            created_at: Some(now_ms()),
+            audio: None,
+            documents: None,
+            channel: Some(serde_json::json!({
+                "private_context": false,
+                "observed": true
+            })),
+            seq: None,
+            run_id: Some(format!("observe-{}-{seq}", now_ms())),
+        }
+    }
+
     /// Convert to JSON value for storage.
     ///
     /// This cannot fail because `PersistedMessage` only contains types with

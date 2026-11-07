@@ -209,9 +209,7 @@ fn apply_untrusted_channel_context_with(
 /// The audience stays trusted so Read, Write, and MCP converters are visible.
 /// `exec` stays available so the operator can move a filed document. `process`
 /// and package installs stay denied. Private owner context stays out of the room.
-pub(in crate::channel_events) fn apply_operator_group_file_tools(
-    params: &mut serde_json::Value,
-) {
+pub(in crate::channel_events) fn apply_operator_group_file_tools(params: &mut serde_json::Value) {
     params["_tool_policy"] = serde_json::json!({
         "deny": ["process", "sandbox_packages"]
     });
@@ -571,6 +569,7 @@ async fn resolve_channel_agent_id(
 mod commands;
 mod control;
 mod dispatch;
+mod observe;
 mod sink;
 #[cfg(test)]
 mod tests;
@@ -666,6 +665,15 @@ impl ChannelEventSink for GatewayChannelEventSink {
         meta: ChannelMessageMeta,
     ) {
         dispatch::dispatch_to_chat(&self.state, text, reply_to, meta).await;
+    }
+
+    async fn observe_without_reply(
+        &self,
+        text: &str,
+        reply_to: ChannelReplyTarget,
+        meta: ChannelMessageMeta,
+    ) {
+        observe::record_overheard(&self.state, text, &reply_to, &meta).await;
     }
 
     async fn request_disable_account(&self, channel_type: &str, account_id: &str, reason: &str) {

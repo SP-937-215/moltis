@@ -71,6 +71,7 @@ fn req(session_id: Option<String>, action: BrowserAction) -> BrowserRequest {
         timeout_ms: 30_000,
         sandbox: Some(false),
         browser: None,
+        chat_session_key: None,
     }
 }
 

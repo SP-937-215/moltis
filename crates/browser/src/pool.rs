@@ -23,6 +23,7 @@ use crate::{
     browserless::session_timeout_ms as browserless_session_timeout_ms,
     container::BrowserContainer,
     error::Error,
+    launch_target::{LaunchTarget, launch_target},
     types::{BrowserConfig, BrowserKind, BrowserPreference, BrowserlessApiVersion},
 };
 
@@ -381,10 +382,17 @@ impl BrowserPool {
             return self.launch_sidecar_browser(session_id, spec).await;
         }
 
-        if sandbox {
-            self.launch_sandboxed_browser(session_id).await
-        } else {
-            self.launch_host_browser(session_id, browser).await
+        match launch_target(sandbox, crate::container::is_container_available()) {
+            LaunchTarget::Sandbox => self.launch_sandboxed_browser(session_id).await,
+            LaunchTarget::Host => {
+                if sandbox {
+                    warn!(
+                        session_id,
+                        "no container runtime for the browser; launching host Chromium"
+                    );
+                }
+                self.launch_host_browser(session_id, browser).await
+            },
         }
     }
 

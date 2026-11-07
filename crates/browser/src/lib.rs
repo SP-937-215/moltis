@@ -24,6 +24,9 @@
 //!     session_id: None,
 //!     action: BrowserAction::Navigate { url: "https://example.com".into() },
 //!     timeout_ms: 30000,
+//!     sandbox: None,
+//!     browser: None,
+//!     chat_session_key: None,
 //! };
 //!
 //! let response = manager.handle_request(request).await;
@@ -32,9 +35,11 @@
 pub mod container;
 pub mod detect;
 pub mod error;
+pub mod launch_target;
 pub mod manager;
 pub mod pool;
 pub mod snapshot;
+pub mod submit_gate;
 pub mod types;
 
 mod browserless;
@@ -42,6 +47,7 @@ mod browserless;
 pub use {
     error::Error,
     manager::BrowserManager,
+    submit_gate::{authorize_submit, note_user_message},
     types::{
         BrowserAction, BrowserConfig, BrowserKind, BrowserPreference, BrowserRequest,
         BrowserResponse,

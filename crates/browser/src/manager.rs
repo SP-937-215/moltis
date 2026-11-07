@@ -22,8 +22,8 @@ use crate::{
     error::Error,
     pool::BrowserPool,
     snapshot::{
-        DEEP_COLLECT_FN, DEEP_FIND_FN, extract_snapshot, find_element_by_ref, focus_element_by_ref,
-        scroll_element_into_view,
+        DEEP_COLLECT_FN, DEEP_FIND_FN, control_facts, extract_snapshot, find_element_by_ref,
+        focus_element_by_ref, scroll_element_into_view,
     },
     types::{
         BrowserAction, BrowserConfig, BrowserKind, BrowserPreference, BrowserRequest,
@@ -120,6 +120,7 @@ impl BrowserManager {
                 request.action,
                 sandbox,
                 request.browser,
+                request.chat_session_key.as_deref().unwrap_or(""),
             ),
         )
         .await
@@ -211,6 +212,7 @@ impl BrowserManager {
         action: BrowserAction,
         sandbox: bool,
         browser: Option<BrowserPreference>,
+        chat_session_key: &str,
     ) -> Result<(String, BrowserResponse), Error> {
         // Navigate has its own retry-with-fresh-session logic, so handle it
         // separately to avoid double-cleanup.
@@ -230,14 +232,21 @@ impl BrowserManager {
                     .await
             },
             BrowserAction::Snapshot => self.snapshot(session_id, sandbox, browser).await,
-            BrowserAction::Click { ref_ } => self.click(session_id, ref_, sandbox).await,
+            BrowserAction::Click { ref_ } => {
+                self.click(session_id, ref_, sandbox, chat_session_key)
+                    .await
+            },
             BrowserAction::Type { ref_, text } => {
-                self.type_text(session_id, ref_, &text, sandbox).await
+                self.type_text(session_id, ref_, &text, sandbox, chat_session_key)
+                    .await
             },
             BrowserAction::Scroll { ref_, x, y } => {
                 self.scroll(session_id, ref_, x, y, sandbox).await
             },
-            BrowserAction::Evaluate { code } => self.evaluate(session_id, &code, sandbox).await,
+            BrowserAction::Evaluate { code } => {
+                self.evaluate(session_id, &code, sandbox, chat_session_key)
+                    .await
+            },
             BrowserAction::Wait {
                 selector,
                 ref_,
@@ -469,10 +478,17 @@ impl BrowserManager {
         session_id: Option<&str>,
         ref_: u32,
         sandbox: bool,
+        chat_session_key: &str,
     ) -> Result<(String, BrowserResponse), Error> {
         let sid = require_session(session_id, "click")?;
 
         let page = self.pool.get_page(&sid).await?;
+        let facts = control_facts(&page, ref_).await?;
+        if crate::submit_gate::is_submit_control(&facts)
+            && let Err(message) = crate::submit_gate::authorize_submit(chat_session_key)
+        {
+            return Ok((sid.clone(), BrowserResponse::error(sid, message, 0)));
+        }
 
         // Scroll element into view first
         scroll_element_into_view(&page, ref_).await?;
@@ -526,10 +542,17 @@ impl BrowserManager {
         ref_: u32,
         text: &str,
         sandbox: bool,
+        chat_session_key: &str,
     ) -> Result<(String, BrowserResponse), Error> {
         let sid = require_session(session_id, "type")?;
 
         let page = self.pool.get_page(&sid).await?;
+        let facts = control_facts(&page, ref_).await?;
+        if crate::submit_gate::enter_would_submit(&facts, text)
+            && let Err(message) = crate::submit_gate::authorize_submit(chat_session_key)
+        {
+            return Ok((sid.clone(), BrowserResponse::error(sid, message, 0)));
+        }
 
         // Focus the element
         focus_element_by_ref(&page, ref_).await?;
@@ -606,8 +629,14 @@ impl BrowserManager {
         session_id: Option<&str>,
         code: &str,
         sandbox: bool,
+        chat_session_key: &str,
     ) -> Result<(String, BrowserResponse), Error> {
         let sid = require_session(session_id, "evaluate")?;
+        if crate::submit_gate::evaluate_would_submit(code)
+            && let Err(message) = crate::submit_gate::authorize_submit(chat_session_key)
+        {
+            return Ok((sid.clone(), BrowserResponse::error(sid, message, 0)));
+        }
 
         let page = self.pool.get_page(&sid).await?;
 
@@ -1032,6 +1061,7 @@ mod tests {
                 timeout_ms: 1000,
                 sandbox: Some(false),
                 browser: Some(BrowserPreference::Obscura),
+                chat_session_key: None,
             })
             .await;
 
@@ -1060,6 +1090,7 @@ mod tests {
                 timeout_ms: 1000,
                 sandbox: Some(false),
                 browser: Some(BrowserPreference::Lightpanda),
+                chat_session_key: None,
             })
             .await;
 

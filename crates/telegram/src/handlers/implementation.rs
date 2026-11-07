@@ -240,19 +240,11 @@ pub async fn handle_message_direct(
             &reason,
             moltis_channels::operators::is_listed(&peer_id, &config.operators),
             extract_document_file(&msg).is_some_and(|document| {
-                is_downloadable_document(
-                    &document.media_type,
-                    document.file_name.as_deref(),
-                )
+                is_downloadable_document(&document.media_type, document.file_name.as_deref())
             }),
         ) {
-            hold_unmentioned_operator_document(
-                accounts,
-                account_id,
-                &msg,
-                event_sink.as_ref(),
-            )
-            .await;
+            hold_unmentioned_operator_document(accounts, account_id, &msg, event_sink.as_ref())
+                .await;
         }
 
         return Ok(());
@@ -819,7 +811,15 @@ pub async fn handle_message_direct(
             documents,
         };
 
-        if attachments.is_empty() {
+        let for_someone_else = matches!(chat_type, ChatType::Group | ChatType::Channel)
+            && crate::observe::group_turn_is_for_someone_else(&body, bot_username.as_deref());
+        if for_someone_else {
+            info!(
+                account_id,
+                "group message names a person; recording it without a reply"
+            );
+            sink.observe_without_reply(&body, reply_target, meta).await;
+        } else if attachments.is_empty() {
             sink.dispatch_to_chat(&body, reply_target, meta).await;
         } else {
             sink.dispatch_to_chat_with_attachments(&body, attachments, reply_target, meta)
@@ -871,7 +871,10 @@ async fn hold_unmentioned_operator_document(
     )
     .await
     else {
-        warn!(account_id, "unmentioned document was downloaded but not saved");
+        warn!(
+            account_id,
+            "unmentioned document was downloaded but not saved"
+        );
         return;
     };
     let held = crate::pending_documents::HeldDocument {
@@ -889,7 +892,10 @@ async fn hold_unmentioned_operator_document(
             .lock()
             .unwrap_or_else(|error| error.into_inner())
             .hold(&chat_id, held);
-        info!(account_id, chat_id, "held operator document until the next mention");
+        info!(
+            account_id,
+            chat_id, "held operator document until the next mention"
+        );
     }
 }
 

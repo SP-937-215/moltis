@@ -279,6 +279,46 @@ pub async fn find_element_by_ref(page: &Page, ref_: u32) -> Result<(f64, f64), E
     Ok((center_x, center_y))
 }
 
+/// Tag, type, and label of a snapshotted control, used before a click or type.
+pub async fn control_facts(
+    page: &Page,
+    ref_: u32,
+) -> Result<crate::submit_gate::ControlFacts, Error> {
+    let js = format!(
+        r#"{DEEP_FIND_FN}
+        (() => {{
+            const el = __mDeepFind('[data-moltis-ref="{ref_}"]');
+            if (!el) return null;
+            const text = (el.innerText || el.textContent || '').trim().slice(0, 120);
+            return {{
+                tag: el.tagName.toLowerCase(),
+                inputType: typeof el.type === 'string' ? el.type : null,
+                text: text || null,
+                ariaLabel: el.getAttribute('aria-label'),
+                role: el.getAttribute('role'),
+                value: typeof el.value === 'string' ? el.value : null
+            }};
+        }})()"#
+    );
+    let result: Value = page
+        .evaluate(js.as_str())
+        .await
+        .map_err(|e| Error::JsEvalFailed(e.to_string()))?
+        .into_value()
+        .map_err(|e| Error::JsEvalFailed(format!("failed to get result: {e:?}")))?;
+    if result.is_null() {
+        return Err(Error::ElementNotFound(ref_));
+    }
+    Ok(crate::submit_gate::ControlFacts {
+        tag: result["tag"].as_str().unwrap_or("").to_string(),
+        input_type: result["inputType"].as_str().map(str::to_string),
+        text: result["text"].as_str().map(str::to_string),
+        aria_label: result["ariaLabel"].as_str().map(str::to_string),
+        role: result["role"].as_str().map(str::to_string),
+        value: result["value"].as_str().map(str::to_string),
+    })
+}
+
 /// Focus an input element by its ref number.
 pub async fn focus_element_by_ref(page: &Page, ref_: u32) -> Result<(), Error> {
     let body = format!(

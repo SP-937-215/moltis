@@ -181,7 +181,10 @@ impl AgentTool for BrowserTool {
          2. {\"action\": \"snapshot\"} - get interactive elements with ref numbers\n\
          3. {\"action\": \"click\", \"ref_\": N} - click element by ref number\n\
          4. {\"action\": \"screenshot\"} - capture the current view\n\
-         5. {\"action\": \"close\"} - close the browser when done"
+         5. {\"action\": \"close\"} - close the browser when done\n\n\
+         FORMS: fill any form the user asks for. Do not send, submit, or apply it. \
+         A send is refused until the user replies submit, send it, send the form, or confirm on a later message. \
+         Show them every filled field and stop."
     }
 
     fn parameters_schema(&self) -> serde_json::Value {
@@ -292,7 +295,7 @@ impl AgentTool for BrowserTool {
             .is_some_and(|a| a == "close");
 
         // Try to parse the request, defaulting to "navigate" if action is missing
-        let request: BrowserRequest = match serde_json::from_value(params.clone()) {
+        let mut request: BrowserRequest = match serde_json::from_value(params.clone()) {
             Ok(req) => req,
             Err(e) if e.to_string().contains("missing field `action`") => {
                 // Default to navigate action if action is missing but url is present
@@ -314,6 +317,7 @@ impl AgentTool for BrowserTool {
             },
             Err(e) => return Err(e.into()),
         };
+        request.chat_session_key = Some(session_key.to_string());
 
         let manager = self.manager().await;
         let response = manager.handle_request(request).await;

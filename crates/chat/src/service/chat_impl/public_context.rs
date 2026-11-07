@@ -98,7 +98,21 @@ pub(crate) fn filter_public_history(history: Vec<Value>) -> Vec<Value> {
 
 #[cfg(test)]
 mod tests {
-    use super::{filter_public_history, mark_public_channel};
+    use {
+        super::{filter_public_history, mark_public_channel},
+        moltis_sessions::PersistedMessage,
+    };
+
+    #[test]
+    fn an_overheard_group_message_stays_visible_on_the_next_turn() {
+        let overheard =
+            PersistedMessage::overheard("Quentin", "@carrie the school called").to_value();
+        let filtered = filter_public_history(vec![overheard]);
+        assert_eq!(filtered.len(), 1);
+        let content = filtered[0]["content"].as_str().unwrap_or("");
+        assert!(content.contains("@carrie the school called"));
+        assert!(content.contains("not a request"));
+    }
 
     #[test]
     fn public_marker_is_created_when_channel_metadata_is_absent() {

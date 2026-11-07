@@ -9,6 +9,7 @@ pub mod config;
 pub mod error;
 pub mod handlers;
 pub mod markdown;
+pub mod observe;
 pub mod otp;
 pub mod outbound;
 pub mod pending_documents;

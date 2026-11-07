@@ -302,6 +302,8 @@ pub(in crate::channel_events) async fn dispatch_to_chat(
             }
         }
 
+        moltis_browser::note_user_message(&session_key, text);
+
         let send_result = chat.send(params).await;
         if let Some(done_tx) = typing_done {
             let _ = done_tx.send(());

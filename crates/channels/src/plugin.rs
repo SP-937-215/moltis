@@ -146,6 +146,18 @@ pub trait ChannelEventSink: Send + Sync {
         meta: ChannelMessageMeta,
     );
 
+    /// Keep a group message in the session without starting a model turn.
+    ///
+    /// Used when the message names a person rather than the bot. The default
+    /// drops it; the gateway records it so a later reply still sees the text.
+    async fn observe_without_reply(
+        &self,
+        _text: &str,
+        _reply_to: ChannelReplyTarget,
+        _meta: ChannelMessageMeta,
+    ) {
+    }
+
     /// Dispatch a slash command (e.g. "new", "clear", "compact", "context")
     /// and return a text result to send back to the channel.
     ///
