@@ -1317,6 +1317,20 @@ fn test_with_max_output_bytes() {
 }
 
 #[test]
+fn exec_timeout_cap_matches_one_hour_agent_budget() {
+    assert_eq!(clamp_exec_timeout_secs(30), 30);
+    assert_eq!(clamp_exec_timeout_secs(3600), 3600);
+    assert_eq!(clamp_exec_timeout_secs(7200), 3600);
+    let desc = ExecTool::default().parameters_schema()["properties"]["timeout"]["description"]
+        .as_str()
+        .unwrap();
+    assert!(
+        desc.contains("max 3600"),
+        "schema should advertise the one-hour cap, got: {desc}"
+    );
+}
+
+#[test]
 fn test_schema_timeout_reflects_configured_default() {
     let tool = ExecTool::default().with_default_timeout(Duration::from_secs(300));
     let schema = tool.parameters_schema();

@@ -50,6 +50,15 @@ use crate::{
 
 const MAX_SANDBOX_RECOVERY_RETRIES: usize = 1;
 
+/// Hard cap for one shell command. Matches the 1-hour agent run budget so a
+/// command is not killed while the agent is still allowed to continue.
+pub(crate) const EXEC_MAX_TIMEOUT_SECS: u64 = 3600;
+
+#[must_use]
+pub(crate) fn clamp_exec_timeout_secs(requested: u64) -> u64 {
+    requested.min(EXEC_MAX_TIMEOUT_SECS)
+}
+
 /// Broadcaster that notifies connected clients about pending approval requests.
 #[async_trait]
 pub trait ApprovalBroadcaster: Send + Sync {
@@ -428,7 +437,9 @@ impl AgentTool for ExecTool {
             },
             "timeout": {
                 "type": "integer",
-                "description": format!("Timeout in seconds (default {timeout_default}, max 1800)")
+                "description": format!(
+                    "Timeout in seconds (default {timeout_default}, max {EXEC_MAX_TIMEOUT_SECS})"
+                )
             },
             "working_dir": {
                 "type": "string",
@@ -469,8 +480,8 @@ impl AgentTool for ExecTool {
         let timeout_secs = params
             .get("timeout")
             .and_then(|v| v.as_u64())
-            .unwrap_or(self.default_timeout.as_secs())
-            .min(1800); // cap at 30 minutes
+            .unwrap_or(self.default_timeout.as_secs());
+        let timeout_secs = clamp_exec_timeout_secs(timeout_secs);
 
         // Node execution: forward to a remote node if configured.
         // When a node is explicitly requested via param or a default is set, route
