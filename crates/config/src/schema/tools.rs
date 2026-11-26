@@ -396,7 +396,10 @@ pub struct FirecrawlConfig {
         skip_serializing_if = "Option::is_none"
     )]
     pub api_key: Option<Secret<String>>,
-    /// Firecrawl API base URL (for self-hosted instances).
+    /// Firecrawl API host root (for self-hosted instances).
+    ///
+    /// The client appends `/v2/scrape` and `/v2/search`. Do not include a
+    /// version segment.
     pub base_url: String,
     /// Only extract main content (skip navs, footers, etc.).
     pub only_main_content: bool,

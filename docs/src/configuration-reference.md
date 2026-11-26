@@ -550,7 +550,7 @@ Default `tool_overrides` entries:
 |-----|------|---------|-------------|
 | enabled | bool | `false` | Enable Firecrawl integration. |
 | api_key | optional string | — | Firecrawl API key (overrides `FIRECRAWL_API_KEY` env var). |
-| base_url | string | `"https://api.firecrawl.dev"` | Firecrawl API base URL (for self-hosted instances). |
+| base_url | string | `"https://api.firecrawl.dev"` | Firecrawl API host root (for self-hosted instances). The client calls `/v2/scrape` and `/v2/search` on this URL; do not include `/v1` or `/v2`. |
 | only_main_content | bool | `true` | Only extract main content (skip navs, footers, etc.). |
 | timeout_seconds | integer | `30` | HTTP request timeout in seconds. |
 | cache_ttl_minutes | integer | `15` | In-memory cache TTL in minutes (0 to disable). |

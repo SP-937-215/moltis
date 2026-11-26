@@ -520,7 +520,7 @@ port = {port}                           # Port number (auto-generated for this i
 # [tools.web.firecrawl]
 # enabled = false
 # api_key = "fc-..."                # Or set FIRECRAWL_API_KEY env var
-# base_url = "https://api.firecrawl.dev"
+# base_url = "https://api.firecrawl.dev"  # Host root only; the client calls /v2
 
 # ── Browser Automation ────────────────────────────────────────────────────────
 

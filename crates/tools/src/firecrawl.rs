@@ -25,7 +25,12 @@ use {
 };
 
 /// Default Firecrawl API base URL.
+///
+/// Host root only. The client appends `/v2`; do not include a version segment.
 pub(crate) const DEFAULT_BASE_URL: &str = "https://api.firecrawl.dev";
+
+/// Hosted Firecrawl API version. v1 stops working on 2026-12-10.
+const API_VERSION: &str = "v2";
 
 /// Default maximum characters returned from a scrape.
 const DEFAULT_MAX_CHARS: usize = 50_000;
@@ -221,7 +226,7 @@ impl AgentTool for FirecrawlScrapeTool {
     }
 }
 
-/// Scrape a URL via the Firecrawl `/v1/scrape` API.
+/// Scrape a URL via the Firecrawl `/v2/scrape` API.
 ///
 /// Returns `Ok(Some(result))` on success, `Ok(None)` when Firecrawl returns
 /// no content, and `Err` on network/API failures.
@@ -235,7 +240,7 @@ pub async fn firecrawl_scrape(
     only_main_content: bool,
     timeout: Duration,
 ) -> crate::Result<Option<ScrapeResult>> {
-    let endpoint = format!("{}/v1/scrape", base_url.trim_end_matches('/'));
+    let endpoint = api_url(base_url, "scrape");
 
     // Send a shorter timeout to Firecrawl so it can return a structured
     // error before the HTTP client tears down the connection.
@@ -298,10 +303,7 @@ pub async fn firecrawl_scrape(
 
     let metadata = data.get("metadata");
 
-    let title = metadata
-        .and_then(|m| m.get("title"))
-        .and_then(|v| v.as_str())
-        .map(String::from);
+    let title = metadata.and_then(|m| m.get("title")).and_then(json_text);
 
     let source_url = metadata
         .and_then(|m| m.get("sourceURL"))
@@ -337,9 +339,10 @@ pub fn resolve_api_key(config: &FirecrawlConfig) -> Option<Secret<String>> {
         .map(Secret::new)
 }
 
-/// Search the web via the Firecrawl `/v1/search` API.
+/// Search the web via the Firecrawl `/v2/search` API.
 ///
 /// Returns a JSON value matching the format used by `WebSearchTool`.
+/// `limit` is always sent: v2's default is 10, v1's was 5.
 pub async fn firecrawl_search(
     client: &reqwest::Client,
     base_url: &str,
@@ -348,7 +351,7 @@ pub async fn firecrawl_search(
     count: u8,
     timeout: Duration,
 ) -> crate::Result<serde_json::Value> {
-    let endpoint = format!("{}/v1/search", base_url.trim_end_matches('/'));
+    let endpoint = api_url(base_url, "search");
 
     let body = serde_json::json!({
         "query": query,
@@ -398,12 +401,31 @@ pub async fn firecrawl_search(
     }))
 }
 
+/// Build a versioned Firecrawl endpoint from a host-root `base_url`.
+fn api_url(base_url: &str, path: &str) -> String {
+    format!("{}/{API_VERSION}/{path}", base_url.trim_end_matches('/'))
+}
+
+/// Read a v2 metadata field that may be a string or an array of strings.
+fn json_text(value: &serde_json::Value) -> Option<String> {
+    match value {
+        serde_json::Value::String(text) => Some(text.clone()),
+        serde_json::Value::Array(items) => {
+            items.iter().find_map(|item| item.as_str().map(str::to_owned))
+        },
+        _ => None,
+    }
+}
+
 /// Extract search results from the Firecrawl search API response.
 fn extract_search_results(payload: &serde_json::Value) -> Vec<serde_json::Value> {
-    // Firecrawl returns results in `data` as an array.
+    // v2 returns web hits in `data.web`. `data` as an array is the v1 shape,
+    // kept so a self-hosted response that still uses it is not dropped.
     let items = payload
         .get("data")
+        .and_then(|data| data.get("web"))
         .and_then(|v| v.as_array())
+        .or_else(|| payload.get("data").and_then(|v| v.as_array()))
         .or_else(|| payload.get("results").and_then(|v| v.as_array()));
 
     let Some(items) = items else {
@@ -600,6 +622,24 @@ mod tests {
     }
 
     #[test]
+    fn test_extract_search_results_v2_web() {
+        let payload = serde_json::json!({
+            "success": true,
+            "data": {
+                "web": [
+                    {"url": "https://a.com", "title": "A", "description": "Desc A"},
+                    {"url": "https://b.com", "title": "B", "description": "Desc B"}
+                ]
+            }
+        });
+        let results = extract_search_results(&payload);
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0]["url"], "https://a.com");
+        assert_eq!(results[0]["title"], "A");
+        assert_eq!(results[1]["description"], "Desc B");
+    }
+
+    #[test]
     fn test_extract_search_results_empty() {
         let payload = serde_json::json!({"success": true});
         let results = extract_search_results(&payload);
@@ -624,7 +664,7 @@ mod tests {
     async fn test_firecrawl_scrape_success() {
         let mut server = mockito::Server::new_async().await;
         let mock = server
-            .mock("POST", "/v1/scrape")
+            .mock("POST", "/v2/scrape")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(
@@ -664,10 +704,49 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_firecrawl_scrape_title_array() {
+        let mut server = mockito::Server::new_async().await;
+        let mock = server
+            .mock("POST", "/v2/scrape")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(
+                serde_json::json!({
+                    "success": true,
+                    "data": {
+                        "markdown": "Page body",
+                        "metadata": {
+                            "title": ["First title", "Second title"],
+                            "sourceURL": "https://example.com",
+                            "statusCode": 200
+                        }
+                    }
+                })
+                .to_string(),
+            )
+            .create_async()
+            .await;
+
+        let result = firecrawl_scrape(
+            &reqwest::Client::new(),
+            &server.url(),
+            "fc-test-key",
+            "https://example.com",
+            true,
+            Duration::from_secs(10),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(result.unwrap().title.as_deref(), Some("First title"));
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
     async fn test_firecrawl_scrape_api_error() {
         let mut server = mockito::Server::new_async().await;
         let mock = server
-            .mock("POST", "/v1/scrape")
+            .mock("POST", "/v2/scrape")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(
@@ -699,7 +778,7 @@ mod tests {
     async fn test_firecrawl_scrape_no_content() {
         let mut server = mockito::Server::new_async().await;
         let mock = server
-            .mock("POST", "/v1/scrape")
+            .mock("POST", "/v2/scrape")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(
@@ -734,7 +813,7 @@ mod tests {
     async fn test_firecrawl_scrape_http_error() {
         let mut server = mockito::Server::new_async().await;
         let mock = server
-            .mock("POST", "/v1/scrape")
+            .mock("POST", "/v2/scrape")
             .with_status(500)
             .with_body("Internal Server Error")
             .create_async()
@@ -759,24 +838,26 @@ mod tests {
     async fn test_firecrawl_search_success() {
         let mut server = mockito::Server::new_async().await;
         let mock = server
-            .mock("POST", "/v1/search")
+            .mock("POST", "/v2/search")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(
                 serde_json::json!({
                     "success": true,
-                    "data": [
-                        {
-                            "url": "https://example.com",
-                            "title": "Example",
-                            "description": "An example site"
-                        },
-                        {
-                            "url": "https://test.com",
-                            "title": "Test",
-                            "description": "A test site"
-                        }
-                    ]
+                    "data": {
+                        "web": [
+                            {
+                                "url": "https://example.com",
+                                "title": "Example",
+                                "description": "An example site"
+                            },
+                            {
+                                "url": "https://test.com",
+                                "title": "Test",
+                                "description": "A test site"
+                            }
+                        ]
+                    }
                 })
                 .to_string(),
             )
@@ -806,7 +887,7 @@ mod tests {
     async fn test_firecrawl_search_api_error() {
         let mut server = mockito::Server::new_async().await;
         let mock = server
-            .mock("POST", "/v1/search")
+            .mock("POST", "/v2/search")
             .with_status(403)
             .with_body("Forbidden")
             .create_async()
