@@ -113,6 +113,7 @@ pub(in crate::channel_events) async fn dispatch_command(
         "clear" => session_handlers::handle_clear(state, &session_key).await,
         "compact" => session_handlers::handle_compact(state, &session_key).await,
         "title" => session_handlers::handle_title(state, &session_key).await,
+        "inbox" => Ok(super::inbox::inbox_report(&moltis_config::data_dir())),
         "context" => session_handlers::handle_context(state, &session_key).await,
         "sessions" => {
             session_handlers::handle_sessions(
@@ -192,6 +193,7 @@ mod tests {
             "clear",
             "compact",
             "title",
+            "inbox",
             "context",
             "sessions",
             "attach",

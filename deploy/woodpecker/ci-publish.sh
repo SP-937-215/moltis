@@ -30,6 +30,9 @@ PLATFORM="${PLATFORM:-linux/amd64}"
 # as older than any stable release. Override with MOLTIS_VERSION=.
 MOLTIS_VERSION="${MOLTIS_VERSION:-20260913.02}"
 
+echo "Running fork tests (Dockerfile target: test)..."
+docker build --platform "${PLATFORM}" -f Dockerfile --target test .
+
 docker build \
   --platform "${PLATFORM}" \
   -f Dockerfile \

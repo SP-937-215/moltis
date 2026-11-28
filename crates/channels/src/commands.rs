@@ -41,6 +41,9 @@ pub struct CommandDef {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CommandPrivilege {
     Public,
+    /// An operator in any chat, including a group. Only for commands that read
+    /// this bot's own state and are safe for the room the operator is in.
+    Operator,
     OperatorDirect,
 }
 
@@ -76,6 +79,10 @@ impl CommandDef {
             // Which model/mode answers in this chat. Reversible, and bounded by
             // the account's own provider configuration.
             | "model" | "mode" | "fast" => CommandPrivilege::Public,
+            // Lists this bot's own inbox folder and host pipeline log. The
+            // bots' document chats are groups or topics, so a direct-only
+            // gate would refuse the operator where the documents arrive.
+            "inbox" => CommandPrivilege::Operator,
             _ => CommandPrivilege::OperatorDirect,
         }
     }
@@ -127,6 +134,11 @@ pub fn all_commands() -> &'static [CommandDef] {
         CommandDef {
             name: "clear",
             description: "Clear session history",
+            arg: None,
+        },
+        CommandDef {
+            name: "inbox",
+            description: "Show 0.Inbox and recent filing activity",
             arg: None,
         },
         CommandDef {
@@ -334,9 +346,11 @@ pub fn help_text() -> String {
     let mut lines = Vec::with_capacity(all_commands().len() + 1);
     lines.push("Available commands:".to_string());
     for cmd in all_commands() {
-        let operator = matches!(cmd.privilege(), CommandPrivilege::OperatorDirect)
-            .then_some(" (operator DM only)")
-            .unwrap_or_default();
+        let operator = match cmd.privilege() {
+            CommandPrivilege::Public => "",
+            CommandPrivilege::Operator => " (operator only)",
+            CommandPrivilege::OperatorDirect => " (operator DM only)",
+        };
         lines.push(format!("/{} — {}{operator}", cmd.name, cmd.description));
     }
     lines.join("\n")
@@ -368,10 +382,14 @@ mod tests {
         const PUBLIC: &[&str] = &[
             "help", "new", "clear", "compact", "title", "fork", "stop", "model", "mode", "fast",
         ];
+        // Operator in any chat: reads only this bot's own inbox folder.
+        const OPERATOR: &[&str] = &["inbox"];
 
         for command in all_commands() {
             let expected = if PUBLIC.contains(&command.name) {
                 CommandPrivilege::Public
+            } else if OPERATOR.contains(&command.name) {
+                CommandPrivilege::Operator
             } else {
                 CommandPrivilege::OperatorDirect
             };
@@ -417,6 +435,20 @@ mod tests {
                 "/{name} must stay restricted to operator direct chats"
             );
         }
+    }
+
+    #[test]
+    fn help_marks_operator_commands() {
+        let text = help_text();
+        assert!(text.contains("/inbox — "));
+        assert!(
+            text.lines()
+                .any(|line| line.starts_with("/inbox") && line.ends_with("(operator only)"))
+        );
+        assert!(
+            text.lines()
+                .any(|line| line.starts_with("/sh") && line.ends_with("(operator DM only)"))
+        );
     }
 
     #[test]
@@ -492,6 +524,7 @@ mod tests {
             "steer",
             "queue",
             "help",
+            "inbox",
         ] {
             assert!(
                 names.contains(&expected),

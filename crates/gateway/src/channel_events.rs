@@ -233,6 +233,7 @@ fn is_channel_command_authorized(
 ) -> bool {
     match privilege {
         moltis_channels::commands::CommandPrivilege::Public => true,
+        moltis_channels::commands::CommandPrivilege::Operator => role.is_operator(),
         moltis_channels::commands::CommandPrivilege::OperatorDirect => {
             is_trusted_channel_turn(role, reply_to)
         },

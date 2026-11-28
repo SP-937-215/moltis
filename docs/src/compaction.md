@@ -209,6 +209,10 @@ used. `deterministic` mode ignores every field except `mode` and
    `threshold_percent × tail_budget_ratio × context_window`. With the
    defaults that's 200 K × 0.95 × 0.20 = 38 K tokens of tail preserved.
 
+Turns without private context (group chats, and queued channel turns that
+were downgraded) also compact at this threshold, but skip the silent memory
+turn that normally runs first, because that turn writes the owner's memory.
+
 Both uses move together: lowering `threshold_percent` compacts earlier
 **and** shrinks the preserved tail, which is usually what you want on a
 tight context window.

@@ -18,6 +18,7 @@ Type `/` in the chat input to see the autocomplete popup.
 | `/sessions` | List and switch sessions (channels only) — **operator DMs only** |
 | `/attach` | Attach an existing session to this channel (channels only) — **operator DMs only** |
 | `/fork [label]` | Fork the current session into a new branch |
+| `/inbox` | List `files/home/0.Inbox` and recent lines of `inbox-activity.log` — **operators only, groups allowed** |
 
 ### /fork
 

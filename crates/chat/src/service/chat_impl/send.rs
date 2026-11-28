@@ -39,7 +39,7 @@ use {
 };
 
 use super::{
-    queue_drain,
+    presend_compaction, queue_drain,
     send_params::{SendParams, parse, turn_result},
 };
 
@@ -971,7 +971,12 @@ impl LiveChatService {
         let compact_threshold =
             compute_auto_compact_threshold(context_window, compaction_cfg.threshold_percent);
 
-        if private_context && !ephemeral && estimated_next_input >= compact_threshold {
+        if let Some(skip_memory_turn) = presend_compaction::presend_compaction(
+            private_context,
+            ephemeral,
+            estimated_next_input,
+            compact_threshold,
+        ) {
             let pre_compact_msg_count = history.len();
             let pre_compact_total = token_usage
                 .current_request_input_tokens
@@ -1005,7 +1010,7 @@ impl LiveChatService {
             )
             .await;
 
-            let compact_params = serde_json::json!({ "_session_key": &session_key });
+            let compact_params = presend_compaction::compact_params(&session_key, skip_memory_turn);
             match self.compact(compact_params).await {
                 Ok(_) => {
                     // Reload history after compaction.

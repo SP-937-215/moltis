@@ -1,6 +1,9 @@
 mod attachments;
 mod control_handlers;
 mod dispatch;
+mod inbox;
+#[cfg(test)]
+mod inbox_tests;
 pub(in crate::channel_events) mod formatting;
 mod location;
 mod media;

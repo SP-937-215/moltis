@@ -11,7 +11,7 @@
 # See README.md for detailed instructions.
 
 # Build stage — nightly required for wacore-binary (portable_simd)
-FROM rust:trixie AS builder
+FROM rust:trixie AS base
 
 WORKDIR /build
 
@@ -56,6 +56,18 @@ RUN ARCH=$(uname -m) && \
 # Install WASM target and build WASM components (embedded via include_bytes!)
 RUN rustup target add wasm32-wasip2 && \
     cargo build --target wasm32-wasip2 -p moltis-wasm-calc -p moltis-wasm-web-fetch -p moltis-wasm-web-search --release
+
+# Fork CI gate: the crates this fork changes. ci-publish.sh builds this
+# target first, so a failing test never reaches the image. The cache mounts
+# keep the debug build incremental across CI runs on Pegasus.
+FROM base AS test
+RUN --mount=type=cache,target=/build/target-test \
+    --mount=type=cache,target=/usr/local/cargo/registry \
+    cargo test --target-dir /build/target-test --lib \
+      -p moltis-chat -p moltis-channels -p moltis-telegram -p moltis-config \
+ && cargo test --target-dir /build/target-test --lib -p moltis-gateway channel_events
+
+FROM base AS builder
 
 # Build release binary with the same portable production feature set used by
 # release/package builds.

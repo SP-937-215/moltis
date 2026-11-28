@@ -249,6 +249,7 @@ fn command_authorization_matches_privilege_and_conversation_scope() {
             matches!(
                 privilege,
                 moltis_channels::commands::CommandPrivilege::Public
+                    | moltis_channels::commands::CommandPrivilege::Operator
             ),
             "operator shared-chat authorization drifted for /{}",
             command.name

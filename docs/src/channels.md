@@ -261,6 +261,7 @@ open to any sender who clears the access gate:
 | | Commands |
 |---|---|
 | **Anyone who may chat** | `/help`, `/new`, `/clear`, `/compact`, `/title`, `/fork`, `/stop`, `/model`, `/mode`, `/fast` |
+| **Operators in any chat** | `/inbox` |
 | **Operators in proven direct chats only** | `/sh`, `/update`, `/approve`, `/deny`, `/approvals`, `/sandbox`, `/attach`, `/sessions`, `/context`, `/insights`, `/peek`, `/btw`, `/rollback`, `/agent`, `/steer`, `/queue` |
 
 The public set can only disrupt the room's own conversation — something any
@@ -269,6 +270,9 @@ member can already do by talking. The operator set runs host commands (`/sh`,
 *owner's* pending exec requests, which is code execution by proxy), weakens
 isolation (`/sandbox` can turn the sandbox off), or reads state outside the
 current chat (`/attach`, `/sessions`, `/context`, `/insights`, `/peek`, `/btw`).
+`/inbox` is the one operator command allowed in groups: it lists the bot's
+own `files/home/0.Inbox` folder and the last lines of `inbox-activity.log` in
+its data directory, which document chats in a group need to see.
 
 New commands default to operator direct-chat only, so adding one is safe until
 it is deliberately reviewed.

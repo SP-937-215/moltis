@@ -2,6 +2,9 @@
 
 mod channel_security;
 mod model_selection;
+mod presend_compaction;
+#[cfg(test)]
+mod presend_compaction_tests;
 mod public_context;
 mod queue_drain;
 mod send;
@@ -340,7 +343,8 @@ impl ChatService for LiveChatService {
         // Run silent memory turn before summarization — saves important memories to disk.
         // The manager implements MemoryWriter directly (with path validation, size limits,
         // and automatic re-indexing), so no manual sync_path is needed after the turn.
-        if let Some(mm) = self.state.memory_manager()
+        if presend_compaction::runs_silent_memory_turn(&params)
+            && let Some(mm) = self.state.memory_manager()
             && let Ok(provider) = self.resolve_provider(&session_key, &history).await
         {
             let config = moltis_config::discover_and_load();
