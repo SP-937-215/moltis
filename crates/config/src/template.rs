@@ -285,7 +285,9 @@ port = {port}                           # Port number (auto-generated for this i
 # auto_title = true                   # Auto-generate session title after first exchange
 # message_queue_mode = "followup"   # How to handle messages during an active agent run:
                                     #   "followup" - Queue messages, replay one-by-one after run
-                                    #   "collect"  - Buffer messages, concatenate as single message
+                                    #   "collect"  - Buffer messages, concatenate as single message;
+                                    #                channel documents wait 3 s for the rest of a
+                                    #                burst, at most 15 documents per turn
 # prompt_memory_mode = "live-reload"  # How MEMORY.md reaches the prompt:
                                       #   "live-reload"            - Re-read MEMORY.md before each turn
                                       #   "frozen-at-session-start" - Freeze the first MEMORY.md snapshot per session

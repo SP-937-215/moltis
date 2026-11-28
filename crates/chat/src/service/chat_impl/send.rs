@@ -179,11 +179,23 @@ impl LiveChatService {
             // Delayed channel turns cannot retain authorization that may be
             // revoked before replay. The original params remain available if
             // admission succeeds immediately.
-            if tool_policy::downgrade_queued_channel_request(&mut queued_params, private_context) {
+            let downgraded =
+                tool_policy::downgrade_queued_channel_request(&mut queued_params, private_context);
+            if downgraded {
                 public_context::mark_public_channel(&mut queued_params);
             }
-            self.admit_turn(&session_key, queued_params, queued_replay)
-                .await
+            if queue_drain::holds_document_for_batch(
+                &queued_params,
+                queued_replay,
+                message_queue_mode,
+                downgraded,
+            ) {
+                self.hold_document_for_batch(&session_key, queued_params)
+                    .await
+            } else {
+                self.admit_turn(&session_key, queued_params, queued_replay)
+                    .await
+            }
         } else {
             let session_sem = self.session_semaphore(&session_key).await;
             let queues = self.message_queue.write().await;

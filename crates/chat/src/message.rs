@@ -53,6 +53,16 @@ pub(crate) fn format_user_documents_context(documents: &[UserDocument]) -> Optio
          Reply with the new path."
             .to_string(),
     );
+    if documents.len() > 1 {
+        sections.push(format!(
+            "[Document batch] {} documents arrived together. File each one as above, then send one reply \
+             that lists every file and its new path, instead of one reply per document. \
+             When the documents are one series (same issuer and account, different periods), \
+             write one memory note for the whole series, named after it, instead of one note per document. \
+             Otherwise write one note per document.",
+            documents.len()
+        ));
+    }
     for document in documents {
         let size = document
             .size_bytes
@@ -432,6 +442,28 @@ mod tests {
         assert!(context.contains("already filed"));
         assert!(context.contains("Do not move or rename it again"));
         assert!(context.contains("30 minutes"));
+    }
+
+    #[test]
+    fn a_document_batch_gets_one_reply_and_one_note_per_series() {
+        let document = |name: &str| UserDocument {
+            display_name: name.to_string(),
+            stored_filename: name.to_string(),
+            mime_type: "application/pdf".to_string(),
+            size_bytes: None,
+            media_ref: format!("media/v1/k00/{name}"),
+            absolute_path: None,
+        };
+        let single = format_user_documents_context(&[document("a.pdf")]).unwrap();
+        assert!(!single.contains("[Document batch]"));
+
+        let batch =
+            format_user_documents_context(&[document("jan.pdf"), document("feb.pdf")]).unwrap();
+        assert!(batch.contains("[Document batch] 2 documents arrived together"));
+        assert!(batch.contains("one reply"));
+        assert!(batch.contains("one memory note for the whole series"));
+        assert!(batch.contains("filename: jan.pdf"));
+        assert!(batch.contains("filename: feb.pdf"));
     }
 
     #[test]

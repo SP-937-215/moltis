@@ -285,7 +285,7 @@ User profile collected during onboarding.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `message_queue_mode` | enum: `followup`, `collect` | `"followup"` | How to handle messages that arrive while an agent run is active. `followup` queues each message and replays them one-by-one; `collect` concatenates and processes as a single message. |
+| `message_queue_mode` | enum: `followup`, `collect` | `"followup"` | How to handle messages that arrive while an agent run is active. `followup` queues each message and replays them one-by-one; `collect` concatenates and processes as a single message. In `collect` mode a channel document upload waits 3 s for the rest of an upload burst, every queued document keeps its saved file, and one turn files at most 15 documents. |
 | `prompt_memory_mode` | enum: `live-reload`, `frozen-at-session-start` | `"live-reload"` | How `MEMORY.md` is loaded into the prompt for an ongoing session. `live-reload` reloads from disk before each turn; `frozen-at-session-start` freezes the initial content for the session lifetime. |
 | `workspace_file_max_chars` | integer | `32000` | Maximum characters from each workspace prompt file (`AGENTS.md`, `TOOLS.md`). |
 | `context_command` | optional string | `null` | Command run before each turn to generate additional prompt context. Stdout is appended to normal chat project context and external-agent context snapshots. Runs in the session worktree or bound project directory when a project is active, otherwise the server's working directory. Times out after 30s; stdout is capped at 32,000 bytes (truncated beyond that). |

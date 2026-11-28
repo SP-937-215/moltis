@@ -4,7 +4,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use {
     serde_json::Value,
-    tokio::sync::{OwnedSemaphorePermit, RwLock},
+    tokio::sync::{OwnedSemaphorePermit, RwLock, Semaphore},
     tracing::{info, warn},
 };
 
@@ -20,7 +20,39 @@ use crate::{
 
 type MessageQueues = Arc<RwLock<HashMap<String, SessionMessageQueue>>>;
 
+/// Most documents one collected turn files. A 46-file burst becomes four
+/// turns, not one turn whose inlined previews alone could fill the context.
+pub(super) const MAX_COLLECTED_DOCUMENTS: usize = 15;
+
+/// Quiet time after the last uploaded document before a held batch runs.
+pub(super) const DOCUMENT_BATCH_QUIET: std::time::Duration = std::time::Duration::from_secs(3);
+
 impl LiveChatService {
+    /// Hold an uploaded document so the rest of its burst joins one turn.
+    pub(super) async fn hold_document_for_batch(
+        &self,
+        session_key: &str,
+        params: Value,
+    ) -> crate::service::types::TurnAdmission {
+        let generation = hold_document_for_batch(&self.message_queue, session_key, params).await;
+        let position = self
+            .message_queue
+            .read()
+            .await
+            .get(session_key)
+            .map_or(1, |queue| queue.messages.len());
+        tokio::spawn(drain_batch_when_quiet(
+            Arc::clone(&self.message_queue),
+            self.session_semaphore(session_key).await,
+            session_key.to_string(),
+            self.config.chat.message_queue_mode,
+            Arc::clone(&self.state),
+            generation,
+            DOCUMENT_BATCH_QUIET,
+        ));
+        crate::service::types::TurnAdmission::Queued(position)
+    }
+
     pub(super) async fn finish_unstarted_turn(
         &self,
         activity_id: &str,
@@ -104,12 +136,105 @@ async fn take_next(
         MessageQueueMode::Collect => {
             let queued = queue.messages.drain(..).collect();
             let (group, rest) = super::tool_policy::split_by_request_security_context(queued);
+            let (group, over_cap) = cap_collected_documents(group);
             // Keep older authorization groups ahead of arrivals that append
             // while this group is replaying.
+            queue.messages.extend(over_cap);
             queue.messages.extend(rest);
             group
         },
     }
+}
+
+fn document_count(params: &Value) -> usize {
+    params
+        .get("_document_files")
+        .and_then(Value::as_array)
+        .map_or(0, Vec::len)
+}
+
+/// Split a collected group after the message that would push it past
+/// [`MAX_COLLECTED_DOCUMENTS`]. The first message always stays in the group.
+fn cap_collected_documents(
+    mut group: Vec<QueuedMessage>,
+) -> (Vec<QueuedMessage>, Vec<QueuedMessage>) {
+    let mut documents = 0;
+    let split = group
+        .iter()
+        .enumerate()
+        .position(|(index, message)| {
+            documents += document_count(&message.params);
+            index > 0 && documents > MAX_COLLECTED_DOCUMENTS
+        })
+        .unwrap_or(group.len());
+    let rest = group.split_off(split);
+    (group, rest)
+}
+
+/// Whether an inbound document should wait briefly so the rest of an upload
+/// burst joins it in one collected turn.
+///
+/// Only a native channel turn in collect mode is held, and only when queueing
+/// keeps its permissions (`downgraded` is false). A turn that queueing would
+/// strip of private context runs at once instead.
+pub(super) fn holds_document_for_batch(
+    params: &Value,
+    queued_replay: bool,
+    mode: MessageQueueMode,
+    downgraded: bool,
+) -> bool {
+    mode == MessageQueueMode::Collect
+        && !queued_replay
+        && !downgraded
+        && params
+            .get("_native_channel_request")
+            .and_then(Value::as_bool)
+            == Some(true)
+        && document_count(params) > 0
+}
+
+/// Queue a document for a batch and return the batch generation it armed.
+pub(super) async fn hold_document_for_batch(
+    message_queue: &MessageQueues,
+    session_key: &str,
+    params: Value,
+) -> u64 {
+    let mut queues = message_queue.write().await;
+    let queue = queues.entry(session_key.to_string()).or_default();
+    queue.messages.push_back(QueuedMessage { params });
+    queue.batch_generation = queue.batch_generation.wrapping_add(1);
+    queue.batch_generation
+}
+
+/// After `quiet`, replay the held batch if no newer document arrived and the
+/// session is idle. A busy session drains it when its active run finishes.
+pub(super) async fn drain_batch_when_quiet(
+    message_queue: MessageQueues,
+    session_semaphore: Arc<Semaphore>,
+    session_key: String,
+    mode: MessageQueueMode,
+    state: Arc<dyn ChatRuntime>,
+    generation: u64,
+    quiet: std::time::Duration,
+) {
+    tokio::time::sleep(quiet).await;
+    {
+        let mut queues = message_queue.write().await;
+        let Some(queue) = queues.get_mut(&session_key) else {
+            return;
+        };
+        if queue.batch_generation != generation
+            || queue.draining
+            || session_semaphore.available_permits() == 0
+        {
+            return;
+        }
+        // Reserve the drain under the lock so no other timer or completing
+        // run starts a second one.
+        queue.draining = true;
+    }
+    info!(session = %session_key, "replaying held document batch");
+    drain_and_replay(&message_queue, &session_key, mode, &state).await;
 }
 
 async fn finish_draining(message_queue: &MessageQueues, session_key: &str) {
@@ -164,6 +289,7 @@ fn merge_collected_content(queued: &[QueuedMessage]) -> Option<Value> {
     }
     let mut merged = queued.last()?.params.clone();
     merged["content"] = Value::Array(blocks);
+    merge_document_files(queued, &mut merged);
     if let Some(object) = merged.as_object_mut() {
         // The text is now carried as a content block; leaving either alias in
         // place would send it twice.
@@ -171,6 +297,30 @@ fn merge_collected_content(queued: &[QueuedMessage]) -> Option<Value> {
         object.remove("message");
     }
     Some(merged)
+}
+
+/// The merged turn starts from the last message's params, which would carry
+/// only that message's saved documents. Every queued document must reach the
+/// agent with its local path, so concatenate them in arrival order.
+fn merge_document_files(queued: &[QueuedMessage], merged: &mut Value) {
+    let files: Vec<Value> = queued
+        .iter()
+        .filter_map(|message| {
+            message
+                .params
+                .get("_document_files")
+                .and_then(Value::as_array)
+        })
+        .flatten()
+        .cloned()
+        .collect();
+    if let Some(object) = merged.as_object_mut() {
+        if files.is_empty() {
+            object.remove("_document_files");
+        } else {
+            object.insert("_document_files".to_string(), Value::Array(files));
+        }
+    }
 }
 
 fn message_text(params: &Value) -> Option<&str> {
@@ -190,6 +340,7 @@ fn merge_collected_text(queued: &[QueuedMessage]) -> Option<Value> {
     }
     let mut merged = queued.last()?.params.clone();
     merged["text"] = Value::String(combined.join("\n\n"));
+    merge_document_files(queued, &mut merged);
     if let Some(object) = merged.as_object_mut() {
         object.remove("message");
     }
@@ -485,6 +636,7 @@ mod tests {
                 .into_iter()
                 .collect(),
                 draining: false,
+                ..Default::default()
             },
         )])));
 
@@ -520,6 +672,7 @@ mod tests {
                 .into_iter()
                 .collect(),
                 draining: false,
+                ..Default::default()
             },
         )])));
 
@@ -576,6 +729,7 @@ mod tests {
                     .into_iter()
                     .collect(),
                 draining: false,
+                ..Default::default()
             },
         )])));
         let chat = Arc::new(ReplayChat {
@@ -652,5 +806,179 @@ mod tests {
             serde_json::json!({ "type": "text", "text": "aliased" })
         );
         assert_eq!(blocks[1]["type"], "image_url");
+    }
+
+    fn document(name: &str) -> Value {
+        serde_json::json!({
+            "text": format!("[Document: {name} (application/pdf)]"),
+            "_native_channel_request": true,
+            "_document_files": [{"display_name": name, "stored_filename": name}],
+        })
+    }
+
+    fn document_names(params: &Value) -> Vec<String> {
+        params["_document_files"]
+            .as_array()
+            .map(|files| {
+                files
+                    .iter()
+                    .filter_map(|file| file["display_name"].as_str().map(str::to_string))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    fn replay_runtime(semaphore: Arc<Semaphore>) -> (Arc<ReplayChat>, Arc<dyn ChatRuntime>) {
+        let chat = Arc::new(ReplayChat {
+            semaphore,
+            sent: Mutex::new(Vec::new()),
+            permits: Mutex::new(Vec::new()),
+        });
+        let runtime: Arc<dyn ChatRuntime> = Arc::new(ReplayRuntime {
+            chat: Arc::clone(&chat),
+            tts: moltis_service_traits::NoopTtsService,
+            project: moltis_service_traits::NoopProjectService,
+            mcp: moltis_service_traits::NoopMcpService,
+        });
+        (chat, runtime)
+    }
+
+    #[test]
+    fn collect_merge_keeps_every_queued_document() {
+        let queued = vec![
+            msg(document("jan.pdf")),
+            msg(document("feb.pdf")),
+            msg(serde_json::json!({"text": "file these"})),
+        ];
+        let merged = merge_collected_text(&queued).unwrap();
+        assert_eq!(document_names(&merged), ["jan.pdf", "feb.pdf"]);
+
+        let mut with_image = queued.clone();
+        with_image.push(msg(serde_json::json!({"content": [
+            {"type": "image_url", "image_url": {"url": "data:image/png;base64,AAA"}}
+        ]})));
+        let merged = merge_collected_content(&with_image).unwrap();
+        assert_eq!(document_names(&merged), ["jan.pdf", "feb.pdf"]);
+    }
+
+    #[tokio::test]
+    async fn collect_take_caps_a_document_batch() {
+        let total = MAX_COLLECTED_DOCUMENTS + 5;
+        let queues = Arc::new(RwLock::new(HashMap::from([(
+            "s".to_string(),
+            SessionMessageQueue {
+                messages: (0..total)
+                    .map(|n| msg(document(&format!("{n}.pdf"))))
+                    .collect(),
+                ..Default::default()
+            },
+        )])));
+
+        let first = take_next(&queues, "s", MessageQueueMode::Collect).await;
+        queues
+            .write()
+            .await
+            .get_mut("s")
+            .unwrap()
+            .messages
+            .push_back(msg(document("late.pdf")));
+        let second = take_next(&queues, "s", MessageQueueMode::Collect).await;
+
+        assert_eq!(first.len(), MAX_COLLECTED_DOCUMENTS);
+        assert_eq!(second.len(), 6);
+        assert_eq!(document_names(&second[0].params), [format!(
+            "{MAX_COLLECTED_DOCUMENTS}.pdf"
+        )]);
+        assert_eq!(document_names(&second[5].params), ["late.pdf"]);
+    }
+
+    #[test]
+    fn only_unprivileged_native_document_turns_wait_for_a_batch() {
+        let doc = document("a.pdf");
+        let collect = MessageQueueMode::Collect;
+        assert!(holds_document_for_batch(&doc, false, collect, false));
+        // Followup mode would replay them one by one anyway.
+        assert!(!holds_document_for_batch(
+            &doc,
+            false,
+            MessageQueueMode::Followup,
+            false
+        ));
+        // A replay is already the batch.
+        assert!(!holds_document_for_batch(&doc, true, collect, false));
+        // Queueing would strip this turn's private context; run it now.
+        assert!(!holds_document_for_batch(&doc, false, collect, true));
+        assert!(!holds_document_for_batch(
+            &serde_json::json!({"text": "hi", "_native_channel_request": true}),
+            false,
+            collect,
+            false
+        ));
+        let mut api = doc.clone();
+        api.as_object_mut()
+            .unwrap()
+            .remove("_native_channel_request");
+        assert!(!holds_document_for_batch(&api, false, collect, false));
+    }
+
+    #[tokio::test]
+    async fn a_document_burst_on_an_idle_session_replays_as_one_turn() {
+        let queues: MessageQueues = Arc::new(RwLock::new(HashMap::new()));
+        let semaphore = Arc::new(Semaphore::new(1));
+        let (chat, runtime) = replay_runtime(Arc::clone(&semaphore));
+        let quiet = std::time::Duration::from_millis(30);
+
+        let mut timers = Vec::new();
+        for name in ["jan.pdf", "feb.pdf", "mar.pdf"] {
+            let generation = hold_document_for_batch(&queues, "s", document(name)).await;
+            timers.push(tokio::spawn(drain_batch_when_quiet(
+                Arc::clone(&queues),
+                Arc::clone(&semaphore),
+                "s".to_string(),
+                MessageQueueMode::Collect,
+                Arc::clone(&runtime),
+                generation,
+                quiet,
+            )));
+        }
+        for timer in timers {
+            timer.await.unwrap();
+        }
+
+        let sent = chat.sent.lock().unwrap_or_else(|error| error.into_inner());
+        assert_eq!(sent.len(), 1);
+        assert_eq!(document_names(&sent[0]), ["jan.pdf", "feb.pdf", "mar.pdf"]);
+        assert_eq!(sent[0]["_queued_replay"], true);
+    }
+
+    #[tokio::test]
+    async fn a_held_batch_waits_for_the_active_run() {
+        let queues: MessageQueues = Arc::new(RwLock::new(HashMap::new()));
+        let semaphore = Arc::new(Semaphore::new(1));
+        let _active_run = Arc::clone(&semaphore).acquire_owned().await.unwrap();
+        let (chat, runtime) = replay_runtime(Arc::clone(&semaphore));
+
+        let generation = hold_document_for_batch(&queues, "s", document("a.pdf")).await;
+        drain_batch_when_quiet(
+            Arc::clone(&queues),
+            Arc::clone(&semaphore),
+            "s".to_string(),
+            MessageQueueMode::Collect,
+            runtime,
+            generation,
+            std::time::Duration::from_millis(5),
+        )
+        .await;
+
+        assert!(
+            chat.sent
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .is_empty()
+        );
+        let queues = queues.read().await;
+        let queue = queues.get("s").unwrap();
+        assert_eq!(queue.messages.len(), 1);
+        assert!(!queue.draining);
     }
 }

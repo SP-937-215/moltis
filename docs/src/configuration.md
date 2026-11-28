@@ -270,7 +270,9 @@ prompt_memory_mode = "live-reload"
 
 # Options:
 #   "followup" - Queue each message and run them sequentially
-#   "collect"  - Merge queued text and run once after the active run
+#   "collect"  - Merge queued text and run once after the active run.
+#                Channel document uploads wait 3 s for the rest of a burst,
+#                and one turn files at most 15 documents.
 #   "live-reload" - Re-read MEMORY.md before each turn
 #   "frozen-at-session-start" - Keep the first MEMORY.md snapshot for the session
 ```

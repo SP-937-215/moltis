@@ -50,6 +50,9 @@ pub(in crate::service) struct QueuedMessage {
 pub(in crate::service) struct SessionMessageQueue {
     pub(in crate::service) messages: VecDeque<QueuedMessage>,
     pub(in crate::service) draining: bool,
+    /// Bumped by every document held for a batch; a batch timer only drains
+    /// when no later document has arrived since it was armed.
+    pub(in crate::service) batch_generation: u64,
 }
 
 pub(in crate::service) enum TurnAdmission {
@@ -1029,6 +1032,7 @@ mod tests {
                 .into_iter()
                 .collect(),
                 draining: true,
+                ..Default::default()
             },
         )])));
         let semaphore = Arc::new(Semaphore::new(1));
@@ -1357,6 +1361,7 @@ mod tests {
             .into_iter()
             .collect(),
             draining: true,
+            ..Default::default()
         })]);
         let removed = cancel_queued_messages(&mut queues, "s");
         assert_eq!(removed.len(), 1);
