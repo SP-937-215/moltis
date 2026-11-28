@@ -31,15 +31,21 @@ pub(crate) fn format_user_documents_context(documents: &[UserDocument]) -> Optio
     sections.push("[Inbound documents available]".to_string());
     sections.push(
         "[Document filing] Before answering, file each document unless the sender said to leave it in the inbox, not to file it, or not to move it. Read local_path. \
+         If 0.Inbox no longer has the file and a byte-identical copy is already under a PARA folder, it is already filed: reply with that path in one line. \
+         Do not move or rename it again and do not call memory_save. \
          Use markitdown or tesseract when the text is not already inline. \
          The inbox folder is 0.Inbox. Do not recreate an unnumbered inbox folder. \
          Rename the 0.Inbox copy to yyyymmdd-short_doc_name plus the original extension. \
-         Use a date stated in the document; if none is stated, use today's date in Asia/Hong_Kong. \
+         Use a date stated in the document. For a statement, use the last day of the statement period, not a later printed statement or issue date: \
+         a statement for 1-30 Sep 2023 dated 3 Oct 2023 is 20230930, and any year folder uses that year. \
+         If no date is stated, use today's date in Asia/Hong_Kong. \
          short_doc_name is a few lowercase words separated by underscores, taken from the content. \
          Put it in one subject subfolder of 1.Projects, 2.Areas, 3.Resources, or 4.Archives. Never leave it at the root of those folders. \
+         If the chosen area has a *filing-convention*.md, follow its naming and layout. \
          A CV, job application, or compensation note goes in 2.Areas/career, not a project. \
          Reuse finance, admin, home, health, or career under 2.Areas, and food under 3.Resources, when one fits. \
-         Delete the 0.Inbox copy after the PARA copy exists. A host job does this if you do not. Do not recreate the inbox copy. \
+         Delete the 0.Inbox copy after the PARA copy exists. Do not recreate the inbox copy. \
+         A host job purges an inbox copy whose bytes are already filed, and files an upload left in 0.Inbox for 30 minutes by its name alone. \
          After the file is in its final folder, call memory_save once. \
          Set file to memory/<same-stem>.md and append to false. \
          The note is the document date, the new path, a short summary, and a few keywords. \
@@ -405,6 +411,27 @@ mod tests {
             documents[0].media_ref,
             SessionStore::media_reference(session_key, filename).unwrap()
         );
+    }
+
+    #[test]
+    fn document_filing_dates_a_statement_by_its_period_and_skips_refiling() {
+        let documents = vec![UserDocument {
+            display_name: "QUENTIN-ODIER_Sep2023_Mox_Bank_Statement.pdf".to_string(),
+            stored_filename: "BQACAg_statement.pdf".to_string(),
+            mime_type: "application/pdf".to_string(),
+            size_bytes: Some(1),
+            media_ref: "media/v1/k00/BQACAg_statement.pdf".to_string(),
+            absolute_path: None,
+        }];
+
+        let context = format_user_documents_context(&documents).unwrap();
+
+        assert!(context.contains("last day of the statement period"));
+        assert!(context.contains("20230930"));
+        assert!(context.contains("filing-convention"));
+        assert!(context.contains("already filed"));
+        assert!(context.contains("Do not move or rename it again"));
+        assert!(context.contains("30 minutes"));
     }
 
     #[test]
