@@ -161,6 +161,10 @@ pub(super) fn extract_document_file(msg: &Message) -> Option<DocumentFileInfo> {
 
 pub(super) const MAX_INLINE_DOCUMENT_BYTES: usize = 64 * 1024;
 pub(super) const MAX_INLINE_DOCUMENT_CHARS: usize = 24_000;
+/// PDFs are saved and the agent gets their local_path, so only a preview is
+/// inlined. Full statement text in every message filled the session during
+/// upload bursts.
+pub(super) const MAX_PDF_PREVIEW_CHARS: usize = 4_000;
 
 pub(super) fn format_document_label(file_name: Option<&str>, media_type: &str) -> String {
     match file_name {
@@ -397,7 +401,21 @@ pub(super) async fn extract_pdf_document_content(data: Vec<u8>) -> Option<String
     })
     .await
     .ok()??;
-    truncate_inline_document_text(&extracted)
+    preview_pdf_text(&extracted)
+}
+
+pub(super) fn preview_pdf_text(text: &str) -> Option<String> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let Some((byte_idx, _)) = trimmed.char_indices().nth(MAX_PDF_PREVIEW_CHARS) else {
+        return Some(trimmed.to_string());
+    };
+    Some(format!(
+        "{}\n\n[PDF preview truncated; read local_path for the full text]",
+        &trimmed[..byte_idx]
+    ))
 }
 
 pub(super) async fn save_inbound_document(

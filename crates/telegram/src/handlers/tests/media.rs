@@ -701,3 +701,19 @@ async fn document_image_is_dispatched_as_attachment() {
     let _ = shutdown_tx.send(());
     server.await.expect("server join");
 }
+
+#[test]
+fn a_long_pdf_is_only_previewed_inline() {
+    let page = "Statement period: 1 Sep 2023 - 30 Sep 2023. ".repeat(400);
+    let preview = preview_pdf_text(&page).expect("preview");
+    assert!(preview.chars().count() < MAX_PDF_PREVIEW_CHARS + 200);
+    assert!(preview.starts_with("Statement period: 1 Sep 2023"));
+    assert!(preview.contains("read local_path for the full text"));
+}
+
+#[test]
+fn a_short_pdf_is_inlined_whole() {
+    let text = "Mox Bank statement\nStatement period: 1 Sep 2023 - 30 Sep 2023";
+    assert_eq!(preview_pdf_text(text).as_deref(), Some(text));
+    assert_eq!(preview_pdf_text("   "), None);
+}

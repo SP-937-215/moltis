@@ -176,3 +176,15 @@ fn test_format_recalled_context_replaces_newlines() {
     assert!(!ctx.contains('\n') || !ctx.contains("line1\nline2"));
     assert!(ctx.contains("line1 line2 line3"));
 }
+
+#[test]
+fn an_overflow_compacts_and_retries_on_a_public_turn_too() {
+    let overflow = AgentRunError::ContextWindowExceeded("too big".to_string());
+    // A queued channel turn is downgraded to public (no private context).
+    // The retry path only rewrites this session's own history and writes no
+    // memory, so the downgrade must not leave the session stuck full.
+    assert!(overflow::compacts_on_overflow(&overflow, true));
+    assert!(!overflow::compacts_on_overflow(&overflow, false));
+    let other = AgentRunError::Other(anyhow::anyhow!("boom"));
+    assert!(!overflow::compacts_on_overflow(&other, true));
+}

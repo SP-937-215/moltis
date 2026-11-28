@@ -65,6 +65,7 @@ use crate::{
 
 #[path = "run_with_tools/channel_tasks.rs"]
 mod channel_tasks;
+mod overflow;
 use channel_tasks::channel_task_update;
 
 #[cfg(feature = "push-notifications")]
@@ -1048,8 +1049,8 @@ pub(crate) async fn run_with_tools(
 
     // On context-window overflow, compact the session and retry once.
     let result = match first_result {
-        Err(AgentRunError::ContextWindowExceeded(ref msg))
-            if private_context && session_store.is_some() =>
+        Err(ref error @ AgentRunError::ContextWindowExceeded(ref msg))
+            if overflow::compacts_on_overflow(error, session_store.is_some()) =>
         {
             let store = session_store?;
             info!(
